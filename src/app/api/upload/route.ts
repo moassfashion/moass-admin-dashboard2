@@ -21,7 +21,12 @@ export async function POST(request: NextRequest) {
     await writeFile(filePath, buffer);
     const url = `/uploads/${name}`;
     return NextResponse.json({ url });
-  } catch {
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Upload failed";
+    console.error("[upload] Error:", err);
+    return NextResponse.json(
+      { error: process.env.NODE_ENV === "development" ? message : "Upload failed" },
+      { status: 500 }
+    );
   }
 }

@@ -71,15 +71,15 @@ export function Sidebar({
       </div>
 
       <div className="mt-3 px-3">
-        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+        <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
           <input
             type="search"
             placeholder="Search..."
-            className="w-full bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
             readOnly
             onFocus={(e) => e.target.blur()}
           />
-          <p className="mt-1 text-xs text-gray-400">⌘K</p>
+          <span className="shrink-0 text-xs text-gray-400">⌘K</span>
         </div>
       </div>
 

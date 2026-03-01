@@ -25,12 +25,12 @@ export async function POST(request: NextRequest) {
     const isDbError = msg.includes("Can't reach database") || msg.includes("connect") || msg.includes("Unknown table");
     const isAuthSecret = msg.includes("AUTH_SECRET");
     let message = "Login failed";
-    if (isDbError)
+    if (process.env.NODE_ENV === "development")
+      message = msg;
+    else if (isDbError)
       message = "Database not reachable. Check DATABASE_URL and that tables exist.";
     else if (isAuthSecret)
       message = "Server config error. Set AUTH_SECRET in Vercel environment variables.";
-    else if (process.env.NODE_ENV === "development")
-      message = msg;
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

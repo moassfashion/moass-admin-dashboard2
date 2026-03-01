@@ -2,27 +2,27 @@
 
 ## যা হয়ে গেছে
 
-- SSH দিয়ে কানেক্ট করা হয়েছে (পাসওয়ার্ড দিয়ে)
+- SSH দিয়ে কানেক্ট করা হয়েছে (আপনার SSH পাসওয়ার্ড দিয়ে)
 - প্রজেক্ট আপলোড করা হয়েছে: **`~/moass`** (লোকালে বিল্ড করা `.next` সহ)
 - Node 20 পাথ সেট করা: `/opt/alt/alt-nodejs20/root/usr/bin`
 - `npm install --omit=dev` সার্ভারে চালানো হয়েছে
-- `.env` বানানো হয়েছে (MySQL username: **u410218618_moass_db**)
+- `.env` বানানো হয়েছে (Hostinger MySQL credentials দিয়ে)
 
 ## আপনার করণীয় (২টা জিনিস)
 
 ### ১. সার্ভারে `.env` আপডেট + মাইগ্রেশন চালান
 
-SSH দিয়ে লগইন করে নিচের কমান্ডগুলো চালান (MySQL username ইতিমধ্যে **u410218618_moass_db** সেট করা):
+SSH দিয়ে লগইন করে নিচের কমান্ডগুলো চালান (নিচের কমান্ডে আপনার MySQL user/password ও AUTH_SECRET দিয়ে `.env` আপডেট করুন):
 
 ```bash
-ssh -p 65002 u410218618@145.79.26.13
-# পাসওয়ার্ড: *MOASSprivate#2026
+ssh -p 65002 YOUR_SSH_USER@YOUR_SERVER_IP
+# আপনার SSH পাসওয়ার্ড দিন
 
 export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH
 cd ~/moass
 
-# .env সঠিক username দিয়ে আপডেট (এক লাইনে)
-printf '%s\n' 'DATABASE_URL="mysql://u410218618_moass_db:Br46w7tru-UswLSpac0O@localhost:3306/moass_db"' 'AUTH_SECRET="WmLaYYlJ0m40FImvtWM98SI+GR2j/gYCJh4KZ7lue5A="' > .env
+# .env সঠিক মান দিয়ে আপডেট (এক লাইনে — Hostinger MySQL username/password ও নিজের AUTH_SECRET ব্যবহার করুন)
+printf '%s\n' 'DATABASE_URL="mysql://YOUR_MYSQL_USER:YOUR_MYSQL_PASSWORD@localhost:3306/moass_db"' 'AUTH_SECRET="YOUR_AUTH_SECRET"' > .env
 
 # টেবিল তৈরি
 npx prisma migrate deploy
@@ -53,10 +53,10 @@ Hostinger-এ Node অ্যাপ চালানোর জন্য **hPanel**
 
 | জিনিস | মান |
 |--------|-----|
-| সার্ভার | `ssh -p 65002 u410218618@145.79.26.13` |
+| সার্ভার | `ssh -p 65002 YOUR_SSH_USER@YOUR_SERVER_IP` |
 | প্রজেক্ট পাথ | `~/moass` |
 | Node পাথ | `export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH` |
-| ডাটাবেস | `moass_db`, user: `u410218618_moass_db`, পাসওয়ার্ড যেটা দিয়েছেন |
+| ডাটাবেস | Hostinger MySQL থেকে database name, user ও password নিয়ে `.env`-এ সেট করুন |
 | অ্যাপ চালু | hPanel → Node.js দিয়ে `npm start` |
 
 উপরে দেওয়া কমান্ড দিয়ে `.env` আপডেট ও `npx prisma migrate deploy` চালালে টেবিল তৈরি হবে; তারপর hPanel Node.js দিয়ে অ্যাপ স্টার্ট করুন।

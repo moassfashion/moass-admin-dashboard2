@@ -50,47 +50,41 @@ export function AddBannerModal({ open, onClose }: AddBannerModalProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    let imageUrl = image.trim();
-    if (imageFile) {
-      setSaving(true);
-      try {
-        const formData = new FormData();
-        formData.set("file", imageFile);
-        const res = await fetch("/api/upload", { method: "POST", body: formData });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setError(data.error || "Image upload failed.");
-          setSaving(false);
-          return;
-        }
-        imageUrl = data.url;
-      } catch {
-        setError("Upload failed.");
-        setSaving(false);
-        return;
-      }
-    }
-    if (!imageUrl) {
+    const imageUrl = image.trim();
+    if (!imageFile && !imageUrl) {
       setError("Add an image by uploading a file or pasting a URL.");
-      setSaving(false);
       return;
     }
     setSaving(true);
     try {
-      const res = await fetch("/api/admin/banners", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title || undefined,
-          image: imageUrl,
-          link: link || undefined,
-        }),
-      });
-      if (!res.ok) {
+      if (imageFile) {
+        const formData = new FormData();
+        formData.set("file", imageFile);
+        if (title) formData.set("title", title);
+        if (link) formData.set("link", link);
+        const res = await fetch("/api/admin/banners", { method: "POST", body: formData });
         const data = await res.json().catch(() => ({}));
-        setError(data.error || "Failed to create banner.");
-        setSaving(false);
-        return;
+        if (!res.ok) {
+          setError(data.error || "Failed to create banner.");
+          setSaving(false);
+          return;
+        }
+      } else {
+        const res = await fetch("/api/admin/banners", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: title || undefined,
+            image: imageUrl,
+            link: link || undefined,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(data.error || "Failed to create banner.");
+          setSaving(false);
+          return;
+        }
       }
       router.refresh();
       onClose();

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/api-auth";
+import { bannerToJson } from "@/lib/banner";
 import { z } from "zod";
 
 const updateSchema = z.object({
   title: z.string().optional().nullable(),
-  image: z.string().min(1).optional(),
+  image: z.string().min(1).optional().nullable(),
   link: z.string().optional().nullable(),
   sortOrder: z.number().int().optional(),
   active: z.boolean().optional(),
@@ -21,7 +22,7 @@ export async function PATCH(
   const body = await request.json();
   const data = updateSchema.parse(body);
   const banner = await prisma.banner.update({ where: { id }, data });
-  return NextResponse.json(banner);
+  return NextResponse.json(bannerToJson(banner));
 }
 
 export async function DELETE(

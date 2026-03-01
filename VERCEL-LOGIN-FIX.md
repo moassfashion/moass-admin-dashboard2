@@ -1,25 +1,27 @@
 # Vercel এ Login / PrismaClientInitializationError ফিক্স
 
-`PrismaClientInitializationError: Invalid prisma...` বা লগইন ৫০০ এরর এলে নিচের স্টেপগুলো চেক করুন।
+`PrismaClientInitializationError: Invalid prisma...` বা **"User was denied access on the database \`moass_db\`"** বা লগইন/রেজিস্টার ৫০০ এরর এলে নিচের স্টেপগুলো চেক করুন।
 
 ---
 
-## ১. ডাটাবেসের নাম ঠিক করুন
+## ১. ডাটাবেসের নাম ঠিক করুন (জরুরি)
+
+**"User was denied access on the database `moass_db`"** মানে Vercel-এ `DATABASE_URL` এ ডাটাবেস নাম **`moass_db`** দেওয়া আছে, কিন্তু Hostinger-এ আপনার MySQL ইউজারের অ্যাক্সেস আছে **অন্য ডাটাবেসে** (যেখানে আপনি phpMyAdmin এ টেবিল বানিয়েছেন)। দুটো **একই** হতে হবে।
 
 phpMyAdmin এ আপনার ডাটাবেসের নাম **বাম পাশে যেটা দেখাচ্ছে** সেটাই ব্যবহার করতে হবে।
 
-- আপনি দেখিয়েছিলেন: **`u410218618_moass_db`**
-- আগে URL এ ছিল: **`moass_db`**
+- Hostinger phpMyAdmin-এ বাম পাশে যে **ডাটাবেসের নাম** দেখাচ্ছে সেটাই ব্যবহার করুন।
+- আগে URL এ ভুল নাম (যেমন শুধু `moass_db`) থাকতে পারে।
 
-তাই Vercel এ `DATABASE_URL` এ **ডাটাবেসের নাম** অংশটা অবশ্যই **`u410218618_moass_db`** দিন।
+তাই Vercel এ `DATABASE_URL` এ **ডাটাবেসের নাম** অংশটা Hostinger-এ যেটা দেখাচ্ছে সেটাই দিন।
 
-**সঠিক ফরম্যাট:**
+**সঠিক ফরম্যাট (placeholders আপনার Hostinger MySQL মান দিয়ে প্রতিস্থাপন করুন):**
 
 ```
-mysql://u410218618_moass_db:Br46w7tru-UswLSpac0O@148.222.53.75:3306/u410218618_moass_db
+mysql://YOUR_MYSQL_USER:YOUR_MYSQL_PASSWORD@YOUR_MYSQL_HOST:3306/YOUR_DATABASE_NAME
 ```
 
-খেয়াল রাখুন: ইউজারনেম ও ডাটাবেস নাম দুটোই Hostinger এ যেরকম সেটা সেরকম (সাধারণত `u410218618_moass_db`)।
+খেয়াল রাখুন: ইউজারনেম ও ডাটাবেস নাম দুটোই Hostinger MySQL Databases পেজে যেরকম সেটা সেরকম দিন।
 
 ---
 
@@ -51,17 +53,17 @@ mysql://u410218618_moass_db:Br46w7tru-UswLSpac0O@148.222.53.75:3306/u410218618_m
 ?connection_limit=1
 ```
 
-পুরো উদাহরণ:
+পুরো উদাহরণ (placeholders আপনার মান দিয়ে প্রতিস্থাপন করুন):
 
 ```
-mysql://u410218618_moass_db:Br46w7tru-UswLSpac0O@148.222.53.75:3306/u410218618_moass_db?connection_limit=1
+mysql://YOUR_MYSQL_USER:YOUR_MYSQL_PASSWORD@YOUR_MYSQL_HOST:3306/YOUR_DATABASE_NAME?connection_limit=1
 ```
 
 ---
 
 ## ৫. সংক্ষিপ্ত চেকলিস্ট
 
-- [ ] Hostinger MySQL Databases থেকে **exact** database name ও username নিয়ে `DATABASE_URL` বানানো (যেমন `u410218618_moass_db`)
+- [ ] Hostinger MySQL Databases থেকে **exact** database name ও username নিয়ে `DATABASE_URL` বানানো
 - [ ] Vercel এ `DATABASE_URL` ও `AUTH_SECRET` সেট করা, value তে কোটেশন বা স্পেস নেই
 - [ ] Production (ও চাইলে Preview) এ env সিলেক্ট করা
 - [ ] env সেভ করার পর **Redeploy** করা

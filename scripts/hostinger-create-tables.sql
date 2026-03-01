@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS `Product` (
     `compareAt` DECIMAL(10, 2) NULL,
     `categoryId` VARCHAR(191) NULL,
     `images` TEXT NULL,
+    `variationImages` TEXT NULL,
     `stock` INTEGER NOT NULL DEFAULT 0,
     `sku` VARCHAR(191) NULL,
     `published` BOOLEAN NOT NULL DEFAULT true,
@@ -59,7 +60,9 @@ CREATE TABLE IF NOT EXISTS `Product` (
 CREATE TABLE IF NOT EXISTS `Banner` (
     `id` VARCHAR(191) NOT NULL,
     `title` VARCHAR(191) NULL,
-    `image` VARCHAR(191) NOT NULL,
+    `image` VARCHAR(191) NULL,
+    `imageData` LONGBLOB NULL,
+    `imageMime` VARCHAR(191) NULL,
     `link` VARCHAR(191) NULL,
     `sortOrder` INTEGER NOT NULL DEFAULT 0,
     `active` BOOLEAN NOT NULL DEFAULT true,
@@ -161,3 +164,11 @@ ALTER TABLE `OrderItem` ADD CONSTRAINT `OrderItem_productId_fkey` FOREIGN KEY (`
 
 -- After running this script, mark migration as applied (use the migration name you created):
 -- npx prisma migrate resolve --applied "20260302000000_init"
+
+-- If Product table already exists without variationImages (fixes "Application error" on /products):
+-- ALTER TABLE `Product` ADD COLUMN `variationImages` TEXT NULL;
+
+-- If Banner table already exists: add MySQL image storage columns and make image nullable:
+-- ALTER TABLE `Banner` MODIFY COLUMN `image` VARCHAR(191) NULL;
+-- ALTER TABLE `Banner` ADD COLUMN `imageData` LONGBLOB NULL;
+-- ALTER TABLE `Banner` ADD COLUMN `imageMime` VARCHAR(191) NULL;
