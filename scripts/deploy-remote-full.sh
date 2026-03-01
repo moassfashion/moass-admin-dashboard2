@@ -10,7 +10,7 @@ echo "=== MOASS Admin – Full deploy on Hostinger ==="
 if [ ! -f .env ]; then
   echo "Creating .env..."
   cat > .env << 'ENVFILE'
-DATABASE_URL="mysql://u410218618_moass:Br46w7tru-UswLSpac0O@localhost:3306/moass_db"
+DATABASE_URL="mysql://u410218618_moass_db:Br46w7tru-UswLSpac0O@localhost:3306/moass_db"
 AUTH_SECRET="WmLaYYlJ0m40FImvtWM98SI+GR2j/gYCJh4KZ7lue5A="
 ENVFILE
   echo ".env created."

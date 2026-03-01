@@ -1,6 +1,59 @@
-# Hostinger-এ MySQL ডাটাবেস কানেক্ট করার ধাপ
+# Hostinger-এ MySQL ডাটাবেস ও SSH দিয়ে ডিপ্লয়
 
-প্রজেক্টে Hostinger-এর MySQL ডাটাবেস যুক্ত করতে নিচের ধাপগুলো অনুসরণ করুন।
+প্রজেক্টে Hostinger-এর MySQL ডাটাবেস যুক্ত এবং SSH কী দিয়ে ডিপ্লয় করতে নিচের ধাপগুলো অনুসরণ করুন।
+
+---
+
+## ০. SSH কী সেটআপ (Hostinger এ ডিপ্লয়ের জন্য)
+
+SSH কী দিয়ে পাসওয়ার্ড ছাড়া সার্ভারে লগইন করতে চাইলে:
+
+### ১. লোকালে SSH কী জেনারেট করুন
+
+টার্মিনালে চালান:
+
+```bash
+ssh-keygen -t ed25519 -C "আপনার-ইমেইল@example.com" -f ~/.ssh/hostinger_moass
+```
+
+- পাসফ্রেজ খালি রাখলেও হয় (Enter চাপুন দুবার)।
+- কী তৈরি হবে: `~/.ssh/hostinger_moass` (প্রাইভেট) ও `~/.ssh/hostinger_moass.pub` (পাবলিক)।
+
+### ২. পাবলিক কী কপি করুন
+
+```bash
+cat ~/.ssh/hostinger_moass.pub
+```
+
+আউটপুট পুরোটা কপি করুন (যেমন `ssh-ed25519 AAAAC3... আপনার-ইমেইল@example.com`)।
+
+### ৩. Hostinger এ কী যুক্ত করুন
+
+1. **Hostinger hPanel** এ লগইন করুন।
+2. **Advanced** → **SSH Access** এ যান।
+3. **Manage SSH Keys** বা **Add SSH Key** এ ক্লিক করুন।
+4. কপি করা পাবলিক কী পেস্ট করে সেভ করুন।
+5. সেই কীটি আপনার অ্যাকাউন্টের সাথে **Authorize** করুন (যদি অপশন থাকে)।
+
+### ৪. SSH দিয়ে কানেক্ট টেস্ট করুন
+
+hPanel এর SSH Access পেজে সাধারণত **Hostname** ও **Username** দেওয়া থাকে (যেমন `username@server123.hostinger.com`)। টার্মিনালে:
+
+```bash
+ssh -i ~/.ssh/hostinger_moass username@server123.hostinger.com
+```
+
+লগইন হলে SSH সেটআপ ঠিক আছে।
+
+**প্রজেক্ট আপলোড:** জিপ বানিয়ে File Manager দিয়ে আপলোড অথবা `scp` দিয়ে:
+
+```bash
+cd "/Users/faisalbh/Documents/MOASS Admin Dashboard"
+zip -r moass.zip . -x "node_modules/*" -x ".next/*" -x ".git/*"
+scp -i ~/.ssh/hostinger_moass moass.zip username@server123.hostinger.com:~/moass.zip
+```
+
+সার্ভারে SSH করে `unzip moass.zip -d moass-admin` করে প্রজেক্ট ফোল্ডারে যান।
 
 ---
 
@@ -51,9 +104,23 @@ DATABASE_URL="mysql://USER:PASSWORD@localhost:3306/DATABASE_NAME?socket=/tmp/mys
 
 ---
 
-## ৩. MySQL এ টেবিল তৈরি করুন
+## ৩. MySQL এ ড্যাশবোর্ডের টেবিলগুলো তৈরি করুন
 
-দুইটা উপায়ের যেকোনো একটা ব্যবহার করুন।
+ড্যাশবোর্ড চালানোর জন্য নিচের টেবিলগুলো দরকার। দুইটা উপায়ের যেকোনো একটা ব্যবহার করুন।
+
+| টেবিল | ব্যবহার |
+|--------|---------|
+| `User` | অ্যাডমিন লগইন, অ্যাকাউন্ট |
+| `Setting` | সাইট সেটিংস |
+| `Category` | প্রোডাক্ট ক্যাটাগরি |
+| `Product` | প্রোডাক্ট, ইনভেন্টরি |
+| `Banner` | হোমপেজ ব্যানার |
+| `Customer` | কাস্টমার তালিকা |
+| `Coupon` | কুপন/ডিসকাউন্ট |
+| `ShippingZone` | শিপিং জোন |
+| `HomepageSection` | হোমপেজ সেকশন |
+| `Order` | অর্ডার |
+| `OrderItem` | অর্ডার আইটেম |
 
 ### উপায় ক: Prisma Migrate (সার্ভার থেকে SSH/টার্মিনাল থাকলে)
 
@@ -62,6 +129,8 @@ npx prisma migrate deploy
 ```
 
 ### উপায় খ: phpMyAdmin দিয়ে (Hostinger এ সাধারণত আছে)
+
+এই উপায়ে উপরের সব ড্যাশবোর্ড টেবিল একসাথে তৈরি হবে।
 
 1. hPanel থেকে **phpMyAdmin** ওপেন করুন।
 2. বাম পাশ থেকে আপনার **ডাটাবেস** সিলেক্ট করুন।

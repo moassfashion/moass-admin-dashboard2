@@ -20,10 +20,17 @@ export async function POST(request: NextRequest) {
     if (e instanceof z.ZodError)
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     console.error("Login error:", e);
-    const isDbError = e && typeof e === "object" && "message" in e && typeof (e as Error).message === "string" && ((e as Error).message.includes("Can't reach database") || (e as Error).message.includes("connect"));
-    const message = isDbError
-      ? "Database not reachable. Check DATABASE_URL in .env and that the database is running."
-      : process.env.NODE_ENV === "development" && e instanceof Error ? e.message : "Login failed";
+    const err = e instanceof Error ? e : new Error(String(e));
+    const msg = err.message || "";
+    const isDbError = msg.includes("Can't reach database") || msg.includes("connect") || msg.includes("Unknown table");
+    const isAuthSecret = msg.includes("AUTH_SECRET");
+    let message = "Login failed";
+    if (isDbError)
+      message = "Database not reachable. Check DATABASE_URL and that tables exist.";
+    else if (isAuthSecret)
+      message = "Server config error. Set AUTH_SECRET in Vercel environment variables.";
+    else if (process.env.NODE_ENV === "development")
+      message = msg;
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
