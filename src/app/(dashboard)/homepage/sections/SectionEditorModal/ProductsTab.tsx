@@ -156,7 +156,7 @@ function SortablePinnedItem({
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-gray-900">{product.name}</p>
         <p className="text-xs text-gray-500">
-          {(product.categories?.length ? product.categories.map((c) => c.name).join(", ") : product.category ?? "—")} · ${product.price}
+          {(product.categories?.length ? product.categories.map((c) => c.name).join(", ") : "—")} · ${product.price}
           {showSales && salesCount !== undefined && ` · ${salesCount} sold`}
           {showDaysAgo && daysAgo !== undefined && ` · ${daysAgo}d ago`}
         </p>
