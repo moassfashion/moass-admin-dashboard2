@@ -57,13 +57,17 @@ export async function getSession(): Promise<{ sub: string; email: string } | nul
 }
 
 export async function getCurrentUser() {
-  const session = await getSession();
-  if (!session) return null;
-  const user = await prisma.user.findUnique({
-    where: { id: session.sub },
-    select: { id: true, email: true, name: true, role: true },
-  });
-  return user;
+  try {
+    const session = await getSession();
+    if (!session) return null;
+    const user = await prisma.user.findUnique({
+      where: { id: session.sub },
+      select: { id: true, email: true, name: true, role: true },
+    });
+    return user;
+  } catch {
+    return null;
+  }
 }
 
 export async function getSessionToken(): Promise<string | null> {
