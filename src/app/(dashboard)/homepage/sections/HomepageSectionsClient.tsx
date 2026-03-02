@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import toast from "react-hot-toast";
 import { useSectionsQuery, useDeleteSectionMutation } from "./hooks/use-homepage-sections";
 import { SectionCard } from "./SectionCard";
 import { SectionEditorModal } from "./SectionEditorModal";
 import { AddSectionModal } from "./AddSectionModal";
 import { EditSectionModal } from "./EditSectionModal";
+import { DeleteSectionModal } from "./DeleteSectionModal";
 import { Button } from "@/components/ui/Button";
 import type { Section } from "@/types/homepage-sections";
 import { Plus } from "lucide-react";
@@ -38,32 +38,15 @@ export function HomepageSectionsClient() {
   const [editorSection, setEditorSection] = useState<Section | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editSection, setEditSection] = useState<Section | null>(null);
+  const [sectionToDelete, setSectionToDelete] = useState<Section | null>(null);
 
   const sections = data?.sections ?? [];
 
-  function handleDelete(section: Section) {
-    toast(
-      (t) => (
-        <span>
-          Delete section &quot;{section.title ?? section.key}&quot;? This cannot be undone.{" "}
-          <button
-            type="button"
-            className="font-medium underline"
-            onClick={() => {
-              deleteSection.mutate(section.key);
-              toast.dismiss(t.id);
-            }}
-          >
-            Yes, delete
-          </button>
-          {" · "}
-          <button type="button" className="font-medium underline" onClick={() => toast.dismiss(t.id)}>
-            Cancel
-          </button>
-        </span>
-      ),
-      { duration: 8000 }
-    );
+  function handleConfirmDelete() {
+    if (!sectionToDelete) return;
+    deleteSection.mutate(sectionToDelete.key, {
+      onSuccess: () => setSectionToDelete(null),
+    });
   }
 
   if (error) {
@@ -95,10 +78,20 @@ export function HomepageSectionsClient() {
               section={section}
               onManage={() => setEditorSection(section)}
               onEdit={() => setEditSection(section)}
-              onDelete={() => handleDelete(section)}
+              onDelete={() => setSectionToDelete(section)}
             />
           ))}
         </div>
+      )}
+
+      {sectionToDelete && (
+        <DeleteSectionModal
+          open={!!sectionToDelete}
+          onClose={() => setSectionToDelete(null)}
+          section={sectionToDelete}
+          onConfirm={handleConfirmDelete}
+          isDeleting={deleteSection.isPending}
+        />
       )}
 
       <SectionEditorModal
