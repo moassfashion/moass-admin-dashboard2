@@ -4,6 +4,8 @@
 
 **সিকিউরিটি লেয়ার ও অথেন্টিকেশন API:** [SECURITY.md](SECURITY.md) – অ্যাডমিন vs স্টোরফ্রন্ট প্রটেকশন, লগইন/রেজিস্টার/মি এন্ডপয়েন্ট, প্রটেক্টেড অ্যাডমিন API তালিকা।
 
+**কাস্টমার লগইন, ড্যাশবোর্ড ও রিওয়ার্ড:** [STOREFRONT-API-CUSTOMER-AUTH.md](STOREFRONT-API-CUSTOMER-AUTH.md) – কাস্টমার রেজিস্টার/লগইন, প্রোফাইল ও ঠিকানা সেভ, আমার অর্ডার, পয়েন্ট/রিওয়ার্ড API।
+
 **অ্যাডমিন ও স্টোরফ্রন্ট সুরক্ষিত সংযোগ:** [SECURE-CONNECTION.md](SECURE-CONNECTION.md) – CORS, env, চেকলিস্ট, কি কল করবেন/করবেন না।
 
 ---
@@ -14,14 +16,15 @@
 2. [প্রোডাক্ট API](#২-প্রোডাক্ট-api)
 3. [ক্যাটাগরি API](#৩-ক্যাটাগরি-api)
 4. [ব্যানার API](#৪-ব্যানার-api)
-5. [শিপিং জোন API](#৫-শিপিং-জোন-api)
-6. [কুপন ভ্যালিডেশন API](#৬-কুপন-ভ্যালিডেশন-api)
-7. [অর্ডার প্লেস API](#৭-অর্ডার-প্লেস-api)
-8. [পাবলিক সেটিংস API](#৮-পাবলিক-সেটিংস-api)
-9. [ডেটা টাইপ রেফারেন্স](#৯-ডেটা-টাইপ-রেফারেন্স)
-10. [চেকআউট ফ্লো (স্টেপ বাই স্টেপ)](#১০-চেকআউট-ফ্লো)
-11. [CORS ও ডিপ্লয়মেন্ট](#১১-cors-ও-ডিপ্লয়মেন্ট)
-12. [API সামারি টেবিল](#১২-api-সামারি-টেবিল)
+5. [হোমপেজ সেকশন API](#৫-হোমপেজ-সেকশন-api)
+6. [শিপিং জোন API](#৬-শিপিং-জোন-api)
+7. [কুপন ভ্যালিডেশন API](#৭-কুপন-ভ্যালিডেশন-api)
+8. [অর্ডার প্লেস API](#৮-অর্ডার-প্লেস-api)
+9. [পাবলিক সেটিংস API](#৯-পাবলিক-সেটিংস-api)
+10. [ডেটা টাইপ রেফারেন্স](#১০-ডেটা-টাইপ-রেফারেন্স)
+11. [চেকআউট ফ্লো (স্টেপ বাই স্টেপ)](#১১-চেকআউট-ফ্লো)
+12. [CORS ও ডিপ্লয়মেন্ট](#১২-cors-ও-ডিপ্লয়মেন্ট)
+13. [API সামারি টেবিল](#১৩-api-সামারি-টেবিল)
 
 ---
 
@@ -259,7 +262,110 @@ const categories = await apiGet("/api/ecommerce/categories");
 
 ---
 
-## ৫. শিপিং জোন API
+## ৫. হোমপেজ সেকশন API
+
+অ্যাডমিনে **Homepage Sections Manager** দিয়ে যে সেকশন কনফিগার করা (New Arrivals, Best Selling, Featured), স্টোরফ্রন্টে হোমপেজে সেকশনওয়াইজ প্রোডাক্ট দেখানোর জন্য এই API। **শুধু active** সেকশনগুলো রিটার্ন হয়; অথেন্টিকেশন লাগে না।
+
+### ৫.১ সব সেকশন একসাথে (হোমপেজ ওয়ান-শট)
+
+হোমপেজ লোডে একবার কল করেই সব active সেকশনের প্রোডাক্ট পাবেন।
+
+| বিষয় | মান |
+|-------|-----|
+| **Method** | `GET` |
+| **Path** | `/api/ecommerce/homepage-sections` |
+
+#### Request উদাহরণ
+
+```bash
+curl "${API_BASE}/api/ecommerce/homepage-sections"
+```
+
+```javascript
+const data = await apiGet("/api/ecommerce/homepage-sections");
+```
+
+#### Success Response (200)
+
+```json
+{
+  "sections": [
+    {
+      "key": "new_arrivals",
+      "title": "New Arrivals",
+      "products": [
+        {
+          "id": "clxx...",
+          "name": "Product Name",
+          "slug": "product-slug",
+          "price": "1299.00",
+          "image": "https://...",
+          "category": "Electronics",
+          "source": "pinned",
+          "days_ago": 2
+        }
+      ]
+    },
+    {
+      "key": "best_selling",
+      "title": "Best Selling",
+      "products": [
+        {
+          "id": "clxx...",
+          "name": "Another Product",
+          "slug": "another-product",
+          "price": "599.00",
+          "image": null,
+          "category": "Fashion",
+          "source": "auto",
+          "total_sales": 45
+        }
+      ]
+    }
+  ]
+}
+```
+
+- **`sections`**: অ্যারে; প্রতিটি আইটেম = একটি সেকশন (অর্ডার = অ্যাডমিনের sortOrder)।
+- **`key`**: `new_arrivals` \| `best_selling` \| `featured`।
+- **`title`**: অ্যাডমিনে সেট করা টাইটেল বা ডিফল্ট (যেমন "New Arrivals")।
+- **`products`**: সেই সেকশনের রিজল্ভড প্রোডাক্ট লিস্ট (পিন্ড + অটো, অ্যাডমিনের নিয়ম অনুযায়ী)। সর্বোচ্চ `max_items` পর্যন্ত।
+- **প্রোডাক্ট ফিল্ড:**  
+  - `id`, `name`, `slug`, `price`, `image`, `category` — প্রোডাক্ট ডিটেইল ও প্রোডাক্ট পেজ লিংক (`/product/[slug]` বা `/api/ecommerce/products/[id]`) দিতে ব্যবহার করুন।  
+  - `source`: `"pinned"` \| `"auto"` (স্টোরফ্রন্টে সাধারণত দরকার নেই)।  
+  - `total_sales`: শুধু **best_selling** সেকশনে থাকতে পারে (অপশনাল)।  
+  - `days_ago`: শুধু **new_arrivals** সেকশনে থাকতে পারে (অপশনাল)।
+
+স্টোরফ্রন্টে হোমপেজে লুপ চালিয়ে প্রতিটি `section` এর জন্য `section.title` হেডিং ও `section.products` কার্ড/গ্রিড দেখান।
+
+### ৫.২ একক সেকশন (অপশনাল)
+
+একটা সেকশন আলাদা লোড করতে চাইলে (যেমন লাজি লোড বা আলাদা পেজ)।
+
+| বিষয় | মান |
+|-------|-----|
+| **Method** | `GET` |
+| **Path** | `/api/ecommerce/homepage-sections/[key]` |
+
+**`[key]`**: `new_arrivals` \| `best_selling` \| `featured`
+
+সেকশন না থাকলে বা **inactive** থাকলে `404`।
+
+#### Success Response (200)
+
+```json
+{
+  "key": "featured",
+  "title": "Featured",
+  "products": [ ... ]
+}
+```
+
+ফরম্যাট উপরের মতো; শুধু একটা সেকশন।
+
+---
+
+## ৬. শিপিং জোন API
 
 চেকআউটে শিপিং অপশন দেখানোর জন্য। অর্ডার সাবমিট করার সময় `shippingZoneId` দিতে হবে।
 
@@ -288,7 +394,7 @@ const categories = await apiGet("/api/ecommerce/categories");
 
 ---
 
-## ৬. কুপন ভ্যালিডেশন API
+## ৭. কুপন ভ্যালিডেশন API
 
 চেকআউটে কুপন কোড চেক করার জন্য। ভ্যালিড হলে কত ডিসকাউন্ট হবে সেটা জানতে পারবেন।
 
@@ -345,7 +451,7 @@ const result = await apiPost("/api/ecommerce/coupons/validate", {
 
 ---
 
-## ৭. অর্ডার প্লেস API
+## ৮. অর্ডার প্লেস API
 
 চেকআউট থেকে অর্ডার সাবমিট করার জন্য। এই API কল করলে অর্ডার ডাটাবেইসে সেভ হয় এবং **অটোমেটিকভাবে অ্যাডমিন ড্যাশবোর্ডের অর্ডার লিস্টে দেখা যাবে**।
 
@@ -470,7 +576,7 @@ console.log("Order placed:", order.orderNumber);
 
 ---
 
-## ৮. পাবলিক সেটিংস API
+## ৯. পাবলিক সেটিংস API
 
 সাইটের নাম, কারেন্সি ইত্যাদি সেটিংস (হেডার/ফুটার/কারেন্সি দেখানোর জন্য)।
 
@@ -492,7 +598,7 @@ console.log("Order placed:", order.orderNumber);
 
 ---
 
-## ৯. ডেটা টাইপ রেফারেন্স
+## ১০. ডেটা টাইপ রেফারেন্স
 
 ### Product (প্রোডাক্ট লিস্ট/সিঙ্গেল)
 
@@ -559,7 +665,7 @@ console.log("Order placed:", order.orderNumber);
 
 ---
 
-## ১০. চেকআউট ফ্লো
+## ১১. চেকআউট ফ্লো
 
 স্টোরফ্রন্টে অর্ডার নেওয়ার জন্য নিচের স্টেপগুলো অনুসরণ করুন।
 
@@ -585,7 +691,7 @@ console.log("Order placed:", order.orderNumber);
 
 ---
 
-## ১১. CORS ও ডিপ্লয়মেন্ট
+## ১২. CORS ও ডিপ্লয়মেন্ট
 
 ### কখন CORS লাগে?
 
@@ -625,7 +731,7 @@ export default nextConfig;
 
 ---
 
-## ১২. API সামারি টেবিল
+## ১৩. API সামারি টেবিল
 
 | কাজ | Method | Path |
 |-----|--------|------|
@@ -633,10 +739,14 @@ export default nextConfig;
 | সিঙ্গেল প্রোডাক্ট | GET | `/api/ecommerce/products/[id]` |
 | ক্যাটাগরি লিস্ট | GET | `/api/ecommerce/categories` |
 | ব্যানার | GET | `/api/ecommerce/banners` |
+| হোমপেজ সেকশন (সব active) | GET | `/api/ecommerce/homepage-sections` |
+| হোমপেজ সেকশন (একটি) | GET | `/api/ecommerce/homepage-sections/[key]` |
 | শিপিং জোন | GET | `/api/ecommerce/shipping` |
 | কুপন ভ্যালিডেট | POST | `/api/ecommerce/coupons/validate` |
 | অর্ডার প্লেস | POST | `/api/ecommerce/orders` |
 | পাবলিক সেটিংস | GET | `/api/ecommerce/settings` |
+
+কাস্টমার লগইন, প্রোফাইল, অর্ডার ও রিওয়ার্ডের জন্য [STOREFRONT-API-CUSTOMER-AUTH.md](STOREFRONT-API-CUSTOMER-AUTH.md) দেখুন।
 
 ---
 

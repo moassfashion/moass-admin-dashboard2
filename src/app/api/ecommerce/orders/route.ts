@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCurrentCustomer } from "@/lib/customer-auth";
 import { z } from "zod";
 import { Decimal } from "@prisma/client/runtime/library";
 
 const createOrderSchema = z.object({
-  customer: z.object({
-    email: z.string().email(),
-    name: z.string().optional(),
-    phone: z.string().optional(),
-    address: z.string().optional(),
-  }),
+  customer: z
+    .object({
+      email: z.string().email(),
+      name: z.string().optional(),
+      phone: z.string().optional(),
+      address: z.string().optional(),
+    })
+    .optional(),
   items: z.array(
     z.object({ productId: z.string().min(1), quantity: z.number().int().min(1) })
   ),
@@ -21,7 +24,8 @@ const createOrderSchema = z.object({
 
 /**
  * Public API for storefront – create order.
- * Validates products (published, stock), applies coupon, calculates totals, creates order & items, decrements stock.
+ * If customer is logged in (ecom_customer_session), uses their saved profile/address.
+ * Otherwise requires customer object in body (guest checkout).
  */
 export async function POST(request: NextRequest) {
   try {
@@ -29,6 +33,42 @@ export async function POST(request: NextRequest) {
     const data = createOrderSchema.parse(body);
     if (data.items.length === 0)
       return NextResponse.json({ error: "At least one item required" }, { status: 400 });
+
+    const loggedIn = await getCurrentCustomer();
+    let customerPayload: { email: string; name?: string; phone?: string; address?: string };
+    let customerId: string | null = null;
+    let customer: { id: string; email: string; name: string | null; phone: string | null; address: string | null };
+
+    if (loggedIn) {
+      customerPayload = {
+        email: loggedIn.email,
+        name: loggedIn.name ?? undefined,
+        phone: loggedIn.phone ?? undefined,
+        address: loggedIn.address ?? undefined,
+      };
+      if (data.customer) {
+        customerPayload.name = data.customer.name ?? customerPayload.name;
+        customerPayload.phone = data.customer.phone ?? customerPayload.phone;
+        customerPayload.address = data.customer.address ?? customerPayload.address;
+      }
+      customer = await prisma.customer.findUniqueOrThrow({ where: { id: loggedIn.id } });
+      customerId = customer.id;
+      await prisma.customer.update({
+        where: { id: customer.id },
+        data: {
+          name: customerPayload.name ?? customer.name,
+          phone: customerPayload.phone ?? customer.phone,
+          address: customerPayload.address ?? customer.address,
+        },
+      });
+    } else {
+      if (!data.customer?.email)
+        return NextResponse.json(
+          { error: "লগইন করুন অথবা ইমেইল ও ঠিকানা দিন।" },
+          { status: 400 }
+        );
+      customerPayload = data.customer;
+    }
 
     const productIds = [...new Set(data.items.map((i) => i.productId))];
     const products = await prisma.product.findMany({
@@ -104,30 +144,32 @@ export async function POST(request: NextRequest) {
     const orderNumber =
       "ORD-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8).toUpperCase();
 
-    let customerId: string | null = null;
-    let customer = await prisma.customer.findFirst({
-      where: { email: data.customer.email.trim().toLowerCase() },
-    });
-    if (customer) {
-      customerId = customer.id;
-      await prisma.customer.update({
-        where: { id: customer.id },
-        data: {
-          name: data.customer.name ?? customer.name,
-          phone: data.customer.phone ?? customer.phone,
-          address: data.customer.address ?? customer.address,
-        },
+    if (!loggedIn) {
+      const normalizedEmail = customerPayload.email.trim().toLowerCase();
+      let guestCustomer = await prisma.customer.findUnique({
+        where: { email: normalizedEmail },
       });
-    } else {
-      customer = await prisma.customer.create({
-        data: {
-          email: data.customer.email.trim().toLowerCase(),
-          name: data.customer.name ?? null,
-          phone: data.customer.phone ?? null,
-          address: data.customer.address ?? null,
-        },
-      });
-      customerId = customer.id;
+      if (guestCustomer) {
+        customerId = guestCustomer.id;
+        await prisma.customer.update({
+          where: { id: guestCustomer.id },
+          data: {
+            name: customerPayload.name ?? guestCustomer.name,
+            phone: customerPayload.phone ?? guestCustomer.phone,
+            address: customerPayload.address ?? guestCustomer.address,
+          },
+        });
+      } else {
+        guestCustomer = await prisma.customer.create({
+          data: {
+            email: normalizedEmail,
+            name: customerPayload.name ?? null,
+            phone: customerPayload.phone ?? null,
+            address: customerPayload.address ?? null,
+          },
+        });
+        customerId = guestCustomer.id;
+      }
     }
 
     const order = await prisma.$transaction(async (tx) => {
@@ -142,7 +184,7 @@ export async function POST(request: NextRequest) {
           total: new Decimal(total),
           couponCode,
           shippingZone: shippingZoneName,
-          shippingAddr: data.shippingAddress ?? null,
+          shippingAddr: data.shippingAddress ?? customerPayload.address ?? null,
           notes: data.notes ?? null,
         },
       });
@@ -168,6 +210,24 @@ export async function POST(request: NextRequest) {
       }
       return o;
     });
+
+    if (loggedIn && customerId) {
+      const pointsToAdd = Math.floor(total / 100);
+      if (pointsToAdd > 0) {
+        await prisma.customerReward.create({
+          data: {
+            customerId,
+            points: pointsToAdd,
+            reason: `অর্ডার #${orderNumber}`,
+            orderId: order.id,
+          },
+        });
+        await prisma.customer.update({
+          where: { id: customerId },
+          data: { points: { increment: pointsToAdd } },
+        });
+      }
+    }
 
     const full = await prisma.order.findUnique({
       where: { id: order.id },
