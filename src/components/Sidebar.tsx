@@ -21,6 +21,7 @@ import {
   LayoutGrid,
   LayoutList,
   Search,
+  List,
 } from "lucide-react";
 
 function LogoutButton() {
@@ -47,6 +48,7 @@ const mainNav = [
   { href: "/categories", label: "Categories", icon: FolderTree },
   { href: "/banners", label: "Banners", icon: Image },
   { href: "/homepage/sections", label: "Homepage Sections", icon: LayoutList },
+  { href: "/menus", label: "Menus", icon: List },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/coupons", label: "Coupons", icon: Ticket },
   { href: "/inventory", label: "Inventory", icon: Warehouse, badgeKey: "lowStock" },

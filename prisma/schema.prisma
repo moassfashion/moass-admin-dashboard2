@@ -157,6 +157,29 @@ model HomepageSection {
   updatedAt DateTime @updatedAt
 }
 
+// Footer/header menu groups (e.g. CATEGORY, QUICK LINKS)
+model MenuGroup {
+  id        String     @id @default(cuid())
+  key       String     @unique  // e.g. "footer_quick_links"
+  label     String     // e.g. "Quick Links"
+  placement String     // "header" | "footer"
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  items     MenuItem[]
+}
+
+model MenuItem {
+  id          String   @id @default(cuid())
+  menuGroupId String
+  menuGroup   MenuGroup @relation(fields: [menuGroupId], references: [id], onDelete: Cascade)
+  label       String
+  link        String   // URL or path
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model Order {
   id               String        @id @default(cuid())
   orderNumber      String        @unique

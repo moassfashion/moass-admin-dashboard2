@@ -264,6 +264,66 @@ const categories = await apiGet("/api/ecommerce/categories");
 
 ---
 
+## ৪.১ মেনু API (Footer/Header)
+
+অ্যাডমিন ড্যাশবোর্ডের **Menus** পেজে ফুটার/হেডার মেনু গ্রুপ (যেমন CATEGORY, QUICK LINKS) ও আইটেম (লেবেল + লিংক) কনফিগার করা যায়। স্টোরফ্রন্টে ফুটার বা হেডারে এই মেনু দেখানোর জন্য এই API ব্যবহার করুন। অথেন্টিকেশন লাগে না।
+
+| বিষয় | মান |
+|-------|-----|
+| **Method** | `GET` |
+| **Path** | `/api/ecommerce/menus` |
+
+#### Query Parameters (ঐচ্ছিক)
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `placement` | string | শুধু `footer` বা `header` মেনু নিতে `?placement=footer` বা `?placement=header` দিন। না দিলে সব মেনু গ্রুপ আসে। |
+
+#### Request উদাহরণ
+
+```bash
+curl "${API_BASE}/api/ecommerce/menus"
+curl "${API_BASE}/api/ecommerce/menus?placement=footer"
+curl "${API_BASE}/api/ecommerce/menus?placement=header"
+```
+
+```javascript
+const menus = await apiGet("/api/ecommerce/menus");
+const footerMenus = await apiGet("/api/ecommerce/menus", { placement: "footer" });
+```
+
+#### Success Response (200)
+
+মেনু গ্রুপের অ্যারে; প্রতিটি গ্রুপের ভেতরে `items` অ্যারে (লেবেল + লিংক)।
+
+```json
+[
+  {
+    "id": "clxx...",
+    "key": "footer_quick_links",
+    "label": "QUICK LINKS",
+    "placement": "footer",
+    "sortOrder": 0,
+    "items": [
+      { "id": "clxx...", "menuGroupId": "clxx...", "label": "Terms & Conditions", "link": "/terms", "sortOrder": 0 },
+      { "id": "clxx...", "menuGroupId": "clxx...", "label": "Privacy Policy", "link": "/privacy", "sortOrder": 1 }
+    ]
+  },
+  {
+    "id": "clxx...",
+    "key": "footer_category",
+    "label": "CATEGORY",
+    "placement": "footer",
+    "sortOrder": 1,
+    "items": []
+  }
+]
+```
+
+স্টোরফ্রন্টে প্রতিটি গ্রুপের `label` হেডিং হিসেবে দেখান এবং `items` দিয়ে লিংক লিস্ট রেন্ডার করুন (যেমন `<a href={item.link}>{item.label}</a>`).
+
+---
+
 ## ৫. হোমপেজ সেকশন API
 
 অ্যাডমিনে **Homepage Sections Manager** দিয়ে যে সেকশন কনফিগার করা (New Arrivals, Best Selling, Featured), স্টোরফ্রন্টে হোমপেজে সেকশনওয়াইজ প্রোডাক্ট দেখানোর জন্য এই API। **শুধু active** সেকশনগুলো রিটার্ন হয়; অথেন্টিকেশন লাগে না।
@@ -747,6 +807,7 @@ console.log("Order placed:", order.orderNumber);
 | সিঙ্গেল প্রোডাক্ট | GET | `/api/ecommerce/products/[id]` |
 | ক্যাটাগরি লিস্ট | GET | `/api/ecommerce/categories` |
 | ব্যানার | GET | `/api/ecommerce/banners` |
+| মেনু (Footer/Header) | GET | `/api/ecommerce/menus` (ঐচ্ছিক: `?placement=footer` বা `?placement=header`) |
 | হোমপেজ সেকশন (সব active) | GET | `/api/ecommerce/homepage-sections` |
 | হোমপেজ সেকশন (একটি) | GET | `/api/ecommerce/homepage-sections/[key]` |
 | শিপিং জোন | GET | `/api/ecommerce/shipping` |
