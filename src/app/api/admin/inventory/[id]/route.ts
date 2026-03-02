@@ -17,7 +17,7 @@ export async function PATCH(
   const product = await prisma.product.update({
     where: { id },
     data: { stock },
-    include: { category: true },
+    include: { categories: true },
   });
   return NextResponse.json(product);
 }

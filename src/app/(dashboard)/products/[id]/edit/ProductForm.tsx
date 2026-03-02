@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Bold, Italic, Underline, Strikethrough, Link2, List } from "lucide-react";
 import { Save, Calendar, Plus, CloudUpload, ImagePlus, Trash2 } from "lucide-react";
 
-type Category = { id: string; name: string; children?: { id: string; name: string }[] };
+type Category = { id: string; name: string; slug?: string; children?: { id: string; name: string }[] };
 type Product = {
   id: string;
   name: string;
@@ -14,7 +14,7 @@ type Product = {
   description: string | null;
   price: { toString(): string };
   compareAt: { toString(): string } | null;
-  categoryId: string | null;
+  categories?: { id: string; name: string }[];
   images: string | null;
   variationImages: string | null;
   stock: number;
@@ -51,8 +51,9 @@ export function ProductForm({
   const [productDetails, setProductDetails] = useState(""); // bullet points, appended to description on save
   const [price, setPrice] = useState(product ? Number(product.price) : 0);
   const [compareAt, setCompareAt] = useState(product?.compareAt ? Number(product.compareAt) : "");
-  const [categoryId, setCategoryId] = useState(product?.categoryId ?? "");
-  const [subCategoryId, setSubCategoryId] = useState("");
+  const [categoryIds, setCategoryIds] = useState<string[]>(
+    () => product?.categories?.map((c) => c.id) ?? []
+  );
   const [images, setImages] = useState(product?.images ?? "");
   const [stock, setStock] = useState(product?.stock ?? 0);
   const [minStock, setMinStock] = useState(100);
@@ -83,7 +84,12 @@ export function ProductForm({
     }
   });
 
-  const subCategories = categories.find((c) => c.id === categoryId)?.children ?? [];
+  // Flat list for multi-select (parents + children), exclude uncategorized from choices
+  const selectableCategories = categories.flatMap((c) => {
+    const parent = c.slug === "uncategorized" ? [] : [{ id: c.id, name: c.name, isChild: false }];
+    const children = (c.children ?? []).map((ch) => ({ id: ch.id, name: ch.name, isChild: true }));
+    return [...parent, ...children];
+  });
   const imageUrls = images ? images.split(",").map((s) => s.trim()).filter(Boolean) : [];
 
   const variationImagesJson =
@@ -105,7 +111,7 @@ export function ProductForm({
         description: fullDescription || undefined,
         price,
         compareAt: compareAt === "" ? undefined : Number(compareAt),
-        categoryId: subCategoryId || categoryId || undefined,
+        categoryIds,
         images: images || undefined,
         variationImages: variationImagesJson || undefined,
         stock,
@@ -287,15 +293,30 @@ export function ProductForm({
           </div>
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
             <div className="border-b border-gray-200 px-6 py-4">
-              <div className={sectionTitleClass}>Category</div>
+              <div className={sectionTitleClass}>Categories</div>
             </div>
-            <div className="px-6 py-4">
-              <select value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setSubCategoryId(""); }} className={inputClass}>
-                <option value="">—</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+            <div className="px-6 py-4 space-y-1">
+              <p className="mb-2 text-xs text-gray-500">এক বা একাধিক ক্যাটাগরি সিলেক্ট করুন। কোনটা সিলেক্ট না করলে অটো &quot;Uncategorized&quot; এ যাবে।</p>
+              {selectableCategories.length === 0 ? (
+                <p className="text-sm text-gray-500">কোন ক্যাটাগরি নেই। সেভ করলে Uncategorized এ যাবে।</p>
+              ) : (
+                <div className="max-h-48 overflow-y-auto rounded border border-gray-100 bg-gray-50/50 p-2 space-y-1">
+                  {selectableCategories.map((c) => (
+                    <label key={c.id} className={`flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-white ${c.isChild ? "pl-6" : ""}`}>
+                      <input
+                        type="checkbox"
+                        checked={categoryIds.includes(c.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) setCategoryIds((prev) => [...prev, c.id]);
+                          else setCategoryIds((prev) => prev.filter((id) => id !== c.id));
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 text-[var(--teal)] focus:ring-[var(--teal)]"
+                      />
+                      <span className="text-sm text-gray-800">{c.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -444,28 +465,29 @@ export function ProductForm({
             </div>
           </div>
 
-          {/* Category */}
+          {/* Categories: multi-select, optional — none = Uncategorized */}
           <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <h3 className={sectionTitleClass}>Category</h3>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className={labelClass}>Product Category</label>
-                <select value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setSubCategoryId(""); }} className={inputClass}>
-                  <option value="">Select category</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Product Sub-Category</label>
-                <select value={subCategoryId} onChange={(e) => setSubCategoryId(e.target.value)} className={inputClass}>
-                  <option value="">Select sub-category</option>
-                  {subCategories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
+            <h3 className={sectionTitleClass}>Categories</h3>
+            <p className="mt-1 text-xs text-gray-500">এক বা একাধিক ক্যাটাগরি সিলেক্ট করুন। কোনটা সিলেক্ট না করলে অটো &quot;Uncategorized&quot; এ যাবে।</p>
+            <div className="mt-4 max-h-48 overflow-y-auto rounded border border-gray-100 bg-gray-50/50 p-2 space-y-1">
+              {selectableCategories.length === 0 ? (
+                <p className="text-sm text-gray-500">কোন ক্যাটাগরি নেই। সেভ করলে Uncategorized এ যাবে।</p>
+              ) : (
+                selectableCategories.map((c) => (
+                  <label key={c.id} className={`flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-white ${c.isChild ? "pl-6" : ""}`}>
+                    <input
+                      type="checkbox"
+                      checked={categoryIds.includes(c.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) setCategoryIds((prev) => [...prev, c.id]);
+                        else setCategoryIds((prev) => prev.filter((id) => id !== c.id));
+                      }}
+                      className="h-4 w-4 rounded border-gray-300 text-[var(--teal)] focus:ring-[var(--teal)]"
+                    />
+                    <span className="text-sm text-gray-800">{c.name}</span>
+                  </label>
+                ))
+              )}
             </div>
           </div>
 

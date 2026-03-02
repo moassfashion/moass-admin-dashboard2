@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const lowStock = await prisma.product.findMany({
     where: { stock: { lte: threshold }, published: true },
     orderBy: { stock: "asc" },
-    include: { category: true },
+    include: { categories: true },
   });
   return NextResponse.json({ lowStock, threshold });
 }

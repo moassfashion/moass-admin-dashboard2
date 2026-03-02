@@ -11,7 +11,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     getCurrentUser(),
     prisma.product.findUnique({
       where: { id },
-      include: { category: true },
+      include: { categories: true },
     }),
     getCategoriesForProductForm(),
   ]);

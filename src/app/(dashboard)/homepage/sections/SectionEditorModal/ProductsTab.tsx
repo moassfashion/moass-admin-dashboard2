@@ -79,7 +79,7 @@ function ProductRow({
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-gray-900">{product.name}</p>
         <p className="text-xs text-gray-500">
-          {product.category?.name ?? "—"} · ${price}
+          {product.categories?.length ? product.categories.map((c) => c.name).join(", ") : "—"} · ${price}
           {showSales && salesCount !== undefined && ` · ${salesCount} sold`}
           {showDaysAgo && daysAgo !== undefined && ` · ${daysAgo} days ago`}
         </p>
@@ -107,7 +107,7 @@ function SortablePinnedItem({
   daysAgo,
 }: {
   id: string;
-  product: { id: string; name: string; images: string | null; category?: { name: string } | null; price: string };
+  product: { id: string; name: string; images: string | null; categories?: { name: string }[]; category?: string | null; price: string };
   sectionKey: string;
   onUnpin: () => void;
   showSales?: boolean;
@@ -156,7 +156,7 @@ function SortablePinnedItem({
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-gray-900">{product.name}</p>
         <p className="text-xs text-gray-500">
-          {product.category?.name ?? "—"} · ${product.price}
+          {(product.categories?.length ? product.categories.map((c) => c.name).join(", ") : product.category ?? "—")} · ${product.price}
           {showSales && salesCount !== undefined && ` · ${salesCount} sold`}
           {showDaysAgo && daysAgo !== undefined && ` · ${daysAgo}d ago`}
         </p>
@@ -213,7 +213,7 @@ export function ProductsTab({
     return products.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
-        (p.category?.name?.toLowerCase().includes(q))
+        (p.categories?.some((c) => c.name.toLowerCase().includes(q)))
     );
   }, [products, search]);
 
@@ -352,7 +352,7 @@ export function ProductsTab({
                       id: p.id,
                       name: p.name,
                       images: p.image,
-                      category: p.category ? { name: p.category } : null,
+                      categories: p.category ? [{ name: p.category }] : [],
                       price: p.price,
                     }}
                     sectionKey={sectionKey}

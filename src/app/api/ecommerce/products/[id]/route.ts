@@ -15,7 +15,7 @@ export async function GET(
       published: true,
       OR: [{ id }, { slug: id }],
     },
-    include: { category: true },
+    include: { categories: true },
   });
   if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(product);

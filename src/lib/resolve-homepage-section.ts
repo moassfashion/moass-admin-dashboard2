@@ -27,13 +27,16 @@ export async function resolveSectionProducts(
     pinnedIds.length > 0
       ? await prisma.product.findMany({
           where: { id: { in: pinnedIds }, published: true },
-          include: { category: true },
+          include: { categories: true },
         })
       : [];
   const pinnedMap = new Map(pinnedProducts.map((p) => [p.id, p]));
   const orderedPinned = pinnedIds
     .map((id) => pinnedMap.get(id))
     .filter(Boolean) as typeof pinnedProducts;
+
+  const firstCategoryName = (p: { categories?: { name: string }[] }) =>
+    p.categories?.length ? p.categories[0].name : null;
 
   if (config.mode === "manual") {
     return orderedPinned.slice(0, config.max_items).map((p) => ({
@@ -42,21 +45,25 @@ export async function resolveSectionProducts(
       slug: p.slug,
       price: String(p.price),
       image: p.images ? p.images.split(",")[0]?.trim() ?? null : null,
-      category: p.category?.name ?? null,
+      category: firstCategoryName(p),
       source: "pinned" as const,
     }));
   }
 
   const excludeIds = new Set(orderedPinned.map((p) => p.id));
   const takeAuto = Math.max(0, config.max_items - orderedPinned.length);
-  const where: { published: boolean; id?: { notIn: string[] }; categoryId?: string | null } = {
+  const where: {
+    published: boolean;
+    id?: { notIn: string[] };
+    categories?: { some: { id: string } };
+  } = {
     published: true,
   };
   if (excludeIds.size > 0) where.id = { notIn: [...excludeIds] };
-  if (config.auto_category) where.categoryId = config.auto_category;
+  if (config.auto_category) where.categories = { some: { id: config.auto_category } };
 
   type ProductRow = Awaited<ReturnType<typeof prisma.product.findMany>>[number] & {
-    category?: { name: string } | null;
+    categories?: { name: string }[];
   };
   let autoProducts: ProductRow[] = [];
 
@@ -65,7 +72,7 @@ export async function resolveSectionProducts(
       where,
       orderBy: { createdAt: "desc" },
       take: takeAuto * 2,
-      include: { category: true },
+      include: { categories: true },
     });
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - config.auto_days);
@@ -79,8 +86,11 @@ export async function resolveSectionProducts(
     const productIds = sold.map((s) => s.productId).filter((id) => !excludeIds.has(id)).slice(0, takeAuto);
     if (productIds.length > 0) {
       const rows = await prisma.product.findMany({
-        where: { id: { in: productIds }, ...(config.auto_category ? { categoryId: config.auto_category } : {}) },
-        include: { category: true },
+        where: {
+          id: { in: productIds },
+          ...(config.auto_category ? { categories: { some: { id: config.auto_category } } } : {}),
+        },
+        include: { categories: true },
       });
       const salesMap = new Map(sold.map((s) => [s.productId, s._sum.quantity ?? 0]));
       rows.sort((a, b) => (salesMap.get(b.id) ?? 0) - (salesMap.get(a.id) ?? 0));
@@ -91,7 +101,7 @@ export async function resolveSectionProducts(
       where,
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
       take: takeAuto,
-      include: { category: true },
+      include: { categories: true },
     });
     autoProducts = rows as ProductRow[];
   }
@@ -104,7 +114,7 @@ export async function resolveSectionProducts(
       slug: p.slug,
       price: String(p.price),
       image: p.images ? p.images.split(",")[0]?.trim() ?? null : null,
-      category: p.category?.name ?? null,
+      category: firstCategoryName(p),
       source: "pinned",
     });
   }
@@ -128,7 +138,7 @@ export async function resolveSectionProducts(
       slug: p.slug,
       price: String(p.price),
       image: p.images ? p.images.split(",")[0]?.trim() ?? null : null,
-      category: p.category?.name ?? null,
+      category: firstCategoryName(p),
       source: "auto",
       ...(section.key === "best_selling" && total_sales !== undefined && { total_sales }),
       ...(section.key === "new_arrivals" && { days_ago: daysAgo }),

@@ -85,7 +85,7 @@ export default async function DashboardPage({
         productId: true,
         orderId: true,
         product: {
-          select: { categoryId: true, category: { select: { id: true, name: true } } },
+          select: { categories: { take: 1, select: { id: true, name: true } } },
         },
       },
     }).catch(() => []),
@@ -113,9 +113,9 @@ export default async function DashboardPage({
 
   const categoryMap = new Map<string, { name: string; revenue: number; orderIds: Set<string> }>();
   for (const item of orderItemsForCategories) {
-    const cat = item.product?.category;
-    const categoryId = item.product?.categoryId ?? "uncategorized";
-    const name = cat?.name ?? "Uncategorized";
+    const firstCat = item.product?.categories?.[0];
+    const categoryId = firstCat?.id ?? "uncategorized";
+    const name = firstCat?.name ?? "Uncategorized";
     const lineTotal = Number(item.price) * item.quantity;
     const existing = categoryMap.get(categoryId);
     if (existing) {

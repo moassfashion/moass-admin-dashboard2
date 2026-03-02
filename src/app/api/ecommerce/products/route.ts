@@ -16,7 +16,9 @@ export async function GET(request: NextRequest) {
 
   const where = {
     published: true,
-    ...(categoryId ? { categoryId } : {}),
+    ...(categoryId
+      ? { categories: { some: { id: categoryId } } }
+      : {}),
     ...(search
       ? {
           OR: [
@@ -33,7 +35,7 @@ export async function GET(request: NextRequest) {
       take: limit,
       where,
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-      include: { category: true },
+      include: { categories: true },
     }),
     prisma.product.count({ where }),
   ]);

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 
-type Product = { id: string; name: string; stock: number; sku: string | null; category: { name: string } | null };
+type Product = { id: string; name: string; stock: number; sku: string | null; categories: { name: string }[] };
 
 export function InventoryClient({ lowStock }: { lowStock: Product[] }) {
   const router = useRouter();
@@ -51,7 +51,7 @@ export function InventoryClient({ lowStock }: { lowStock: Product[] }) {
                     {p.name}
                   </Link>
                 </td>
-                <td className="h-12 px-4 text-gray-700">{p.category?.name ?? "—"}</td>
+                <td className="h-12 px-4 text-gray-700">{p.categories?.length ? p.categories.map((c) => c.name).join(", ") : "—"}</td>
                 <td className="h-12 px-4 text-right text-gray-900">{p.stock}</td>
                 <td className="h-12 px-4">
                   <div className="flex items-center justify-end gap-2">

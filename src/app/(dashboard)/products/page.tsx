@@ -10,7 +10,7 @@ export default async function ProductsPage() {
     prisma.product.findMany({
       take: 50,
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-      include: { category: true },
+      include: { categories: true },
     }),
   ]);
   if (!user) redirect("/auth/v2/login");
@@ -62,7 +62,7 @@ export default async function ProductsPage() {
                         {p.sku && <p className="text-xs text-gray-500">{p.sku}</p>}
                       </div>
                     </td>
-                    <td className="h-12 px-4 text-gray-700">{p.category?.name ?? "—"}</td>
+                    <td className="h-12 px-4 text-gray-700">{p.categories?.length ? p.categories.map((c) => c.name).join(", ") : "—"}</td>
                     <td className="h-12 px-4 text-right font-medium text-gray-900">
                       ৳{Number(p.price).toLocaleString()}
                     </td>

@@ -12,7 +12,7 @@ export default async function InventoryPage() {
   const lowStock = await prisma.product.findMany({
     where: { stock: { lte: threshold }, published: true },
     orderBy: { stock: "asc" },
-    include: { category: true },
+    include: { categories: true },
   });
   return (
     <div className="min-h-full">

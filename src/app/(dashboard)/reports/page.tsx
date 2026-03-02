@@ -25,7 +25,7 @@ export default async function ReportsPage() {
   const productIds = items.map((i) => i.productId);
   const products = await prisma.product.findMany({
     where: { id: { in: productIds } },
-    include: { category: true },
+    include: { categories: true },
   });
   const byId = Object.fromEntries(products.map((p) => [p.id, p]));
   const topProducts = items.map((i) => ({

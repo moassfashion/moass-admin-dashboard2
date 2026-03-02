@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/api-auth";
+import { getUncategorizedCategoryId } from "@/lib/product-data";
 import { z } from "zod";
 
 export async function GET(request: NextRequest) {
@@ -11,15 +12,18 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "20", 10)));
   const skip = (page - 1) * limit;
   const categoryId = searchParams.get("categoryId") || undefined;
+  const where = categoryId
+    ? { categories: { some: { id: categoryId } } }
+    : undefined;
   const [products, total] = await Promise.all([
     prisma.product.findMany({
       skip,
       take: limit,
-      where: categoryId ? { categoryId } : undefined,
+      where,
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-      include: { category: true },
+      include: { categories: true },
     }),
-    prisma.product.count({ where: categoryId ? { categoryId } : undefined }),
+    prisma.product.count({ where }),
   ]);
   return NextResponse.json({ products, total, page, limit });
 }
@@ -30,7 +34,7 @@ const createSchema = z.object({
   description: z.string().optional(),
   price: z.number().positive(),
   compareAt: z.number().positive().optional(),
-  categoryId: z.string().optional(),
+  categoryIds: z.array(z.string()).optional(),
   images: z.string().optional(),
   variationImages: z.string().optional(),
   stock: z.number().int().min(0).default(0),
@@ -44,17 +48,25 @@ export async function POST(request: NextRequest) {
   if (user instanceof NextResponse) return user;
   const body = await request.json();
   const data = createSchema.parse(body);
+  const categoryIds = data.categoryIds?.length
+    ? data.categoryIds
+    : [await getUncategorizedCategoryId()];
   const product = await prisma.product.create({
     data: {
-      ...data,
+      name: data.name,
+      slug: data.slug,
+      description: data.description ?? null,
       price: data.price,
       compareAt: data.compareAt ?? null,
       images: data.images ?? null,
       variationImages: data.variationImages ?? null,
-      categoryId: data.categoryId ?? null,
+      stock: data.stock,
       sku: data.sku ?? null,
+      published: data.published,
+      sortOrder: data.sortOrder,
+      categories: { connect: categoryIds.map((id) => ({ id })) },
     },
-    include: { category: true },
+    include: { categories: true },
   });
   return NextResponse.json(product);
 }

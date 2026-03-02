@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   const productIds = items.map((i) => i.productId);
   const products = await prisma.product.findMany({
     where: { id: { in: productIds } },
-    include: { category: true },
+    include: { categories: true },
   });
   const byId = Object.fromEntries(products.map((p) => [p.id, p]));
   const top = items.map((i) => ({

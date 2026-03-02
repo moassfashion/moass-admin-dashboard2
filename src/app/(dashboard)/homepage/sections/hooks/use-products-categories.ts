@@ -8,8 +8,7 @@ export type ApiProduct = {
   slug: string;
   price: { toString(): string };
   images: string | null;
-  category: { id: string; name: string } | null;
-  categoryId: string | null;
+  categories: { id: string; name: string }[];
   createdAt: string;
 };
 
