@@ -4,7 +4,9 @@
 
 **সিকিউরিটি লেয়ার ও অথেন্টিকেশন API:** [SECURITY.md](SECURITY.md) – অ্যাডমিন vs স্টোরফ্রন্ট প্রটেকশন, লগইন/রেজিস্টার/মি এন্ডপয়েন্ট, প্রটেক্টেড অ্যাডমিন API তালিকা।
 
-**কাস্টমার লগইন, ড্যাশবোর্ড ও রিওয়ার্ড:** [STOREFRONT-API-CUSTOMER-AUTH.md](STOREFRONT-API-CUSTOMER-AUTH.md) – কাস্টমার রেজিস্টার/লগইন, প্রোফাইল ও ঠিকানা সেভ, আমার অর্ডার, পয়েন্ট/রিওয়ার্ড API।
+**স্টোরফ্রন্টের জন্য শুধু কাস্টমার API স্পেক:** [STOREFRONT-CUSTOMER-API.md](STOREFRONT-CUSTOMER-API.md) – স্টোরফ্রন্ট ডেভেলপারদের জন্য কাস্টমার এন্ডপয়েন্ট, credentials, রিকোয়েস্ট/রেসপন্স উদাহরণ এক জায়গায়।
+
+**পেমেন্ট মেথড ও চেকআউট:** [STOREFRONT-API-PAYMENT-METHODS.md](STOREFRONT-API-PAYMENT-METHODS.md) – পেমেন্ট মেথড API, অর্ডারে পেমেন্ট ফিল্ড, চেকআউট UI লজিক।
 
 **অ্যাডমিন ও স্টোরফ্রন্ট সুরক্ষিত সংযোগ:** [SECURE-CONNECTION.md](SECURE-CONNECTION.md) – CORS, env, চেকলিস্ট, কি কল করবেন/করবেন না।
 
@@ -477,6 +479,9 @@ const result = await apiPost("/api/ecommerce/coupons/validate", {
 | `shippingZoneId` | string | No | শিপিং জোন id (`GET /api/ecommerce/shipping` থেকে) |
 | `shippingAddress` | string | No | ডেলিভারি অ্যাড্রেস টেক্সট |
 | `notes` | string | No | অতিরিক্ত নোট |
+| `payment_method_id` | string | No | পেমেন্ট মেথড id (`GET /api/ecommerce/payment-methods` থেকে) |
+| `transaction_id` | string | MANUAL হলে বাধ্যতামূলক | bKash/Nagad ইত্যাদির ট্রানজেকশন আইডি |
+| `sender_number` | string | No | যে নম্বর থেকে পেমেন্ট পাঠানো (ঐচ্ছিক) |
 
 #### Request উদাহরণ
 
@@ -669,9 +674,10 @@ console.log("Order placed:", order.orderNumber);
 
 স্টোরফ্রন্টে অর্ডার নেওয়ার জন্য নিচের স্টেপগুলো অনুসরণ করুন।
 
-1. **প্রোডাক্ট ও শিপিং ডেটা লোড**
+1. **প্রোডাক্ট, শিপিং ও পেমেন্ট ডেটা লোড**
    - প্রোডাক্ট: `GET /api/ecommerce/products` বা `GET /api/ecommerce/products/[id]`
    - শিপিং অপশন: `GET /api/ecommerce/shipping`
+   - পেমেন্ট মেথড: `GET /api/ecommerce/payment-methods` (চেকআউটে পেমেন্ট অপশন দেখানোর জন্য)
    - (ঐচ্ছিক) সেটিংস: `GET /api/ecommerce/settings` (সাইট নাম, কারেন্সি)
 
 2. **কার্ট বিল্ড করা**
@@ -682,9 +688,10 @@ console.log("Order placed:", order.orderNumber);
    - ভ্যালিড হলে `discount` নিয়ে টোটাল থেকে বাদ দিন; ইনভ্যালিড হলে এরর মেসেজ দেখান।
 
 4. **অর্ডার সাবমিট**
-   - চেকআউট ফর্ম থেকে: `POST /api/ecommerce/orders` with `customer`, `items`, (ঐচ্ছিক) `couponCode`, `shippingZoneId`, `shippingAddress`, `notes`।
+   - চেকআউট ফর্ম থেকে: `POST /api/ecommerce/orders` with `customer`, `items`, (ঐচ্ছিক) `couponCode`, `shippingZoneId`, `shippingAddress`, `notes`, (ঐচ্ছিক) `payment_method_id`, `transaction_id` (MANUAL পেমেন্টে বাধ্যতামূলক), `sender_number`।
    - সফল হলে রেসপন্সে `orderNumber` পাবেন; কনফার্মেশন পেজে এই নম্বর দেখান।
    - অর্ডার অটোমেটিকভাবে অ্যাডমিন ড্যাশবোর্ডের অর্ডার লিস্টে চলে যাবে; আলাদা কিছু করার দরকার নেই।
+   - পেমেন্ট মেথড ও চেকআউট UI বিস্তারিত: [STOREFRONT-API-PAYMENT-METHODS.md](STOREFRONT-API-PAYMENT-METHODS.md)
 
 5. **এরর হ্যান্ডলিং**
    - 400 এরর বডিতে `error` মেসেজ থাকে। স্টক কম, কুপন এক্সপায়ার্ড, মিনিমাম অর্ডার ইত্যাদি মেসেজ ইউজারকে দেখান।
@@ -699,31 +706,16 @@ console.log("Order placed:", order.orderNumber);
 
 ### এই প্রজেক্টে CORS সেট করা (Next.js)
 
-অ্যাডমিন ড্যাশবোর্ড প্রজেক্টে `next.config.ts` এ হেডার যোগ করুন:
+অ্যাডমিন ড্যাশবোর্ডে `next.config.ts` এ ইতিমধ্যে CORS হেডার আছে। **স্টোরফ্রন্ট থেকে credentials (কুকি) সহ রিকোয়েস্ট** চালাতে হলে:
 
-```ts
-// next.config.ts
-import type { NextConfig } from "next";
+1. **অরিজিন নির্দিষ্ট রাখুন** — `*` দিলে ব্রাউজার credentials পাঠাতে দেয় না।
+2. **এনভায়রনমেন্ট ভেরিয়েবল সেট করুন:** অ্যাডমিন প্রজেক্টে (Vercel/লোকাল) `STOREFRONT_ORIGIN` = স্টোরফ্রন্টের ঠিক URL।  
+   উদাহরণ: `https://your-store.vercel.app` বা লোকালে `http://localhost:3001`
+3. তখন অটোমেটিকভাবে সেট হয়:
+   - `Access-Control-Allow-Origin`: `STOREFRONT_ORIGIN` এর মান (নির্দিষ্ট অরিজিন)
+   - `Access-Control-Allow-Credentials: true`
 
-const nextConfig: NextConfig = {
-  async headers() {
-    return [
-      {
-        source: "/api/ecommerce/:path*",
-        headers: [
-          { key: "Access-Control-Allow-Origin", value: "*" }, // প্রোডে নির্দিষ্ট ডোমেইন দিন, যেমন "https://shop.example.com"
-          { key: "Access-Control-Allow-Methods", value: "GET, POST, OPTIONS" },
-          { key: "Access-Control-Allow-Headers", value: "Content-Type" },
-        ],
-      },
-    ];
-  },
-};
-
-export default nextConfig;
-```
-
-প্রোডাকশনে `Access-Control-Allow-Origin` এ শুধু আপনার স্টোরফ্রন্ট ডোমেইন দিন (যেমন `https://shop.example.com`)।
+`STOREFRONT_ORIGIN` খালি বা সেট না থাকলে অরিজিন `*` থাকে এবং credentials হেডার যুক্ত হয় না (কুকি সহ ক্রস-অরিজিন রিকোয়েস্ট কাজ করবে না)।
 
 ### একই ডোমেইনে স্টোরফ্রন্ট ও অ্যাডমিন
 
@@ -742,6 +734,7 @@ export default nextConfig;
 | হোমপেজ সেকশন (সব active) | GET | `/api/ecommerce/homepage-sections` |
 | হোমপেজ সেকশন (একটি) | GET | `/api/ecommerce/homepage-sections/[key]` |
 | শিপিং জোন | GET | `/api/ecommerce/shipping` |
+| পেমেন্ট মেথড | GET | `/api/ecommerce/payment-methods` |
 | কুপন ভ্যালিডেট | POST | `/api/ecommerce/coupons/validate` |
 | অর্ডার প্লেস | POST | `/api/ecommerce/orders` |
 | পাবলিক সেটিংস | GET | `/api/ecommerce/settings` |

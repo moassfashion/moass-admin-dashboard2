@@ -1,9 +1,10 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { format } from "date-fns";
-import { MoreHorizontal, Package } from "lucide-react";
+import { MoreHorizontal, Package, Search } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 
 function statusDisplay(status: string): { label: string; variant: string } {
@@ -31,19 +32,54 @@ type Order = {
   items: { product: { name: string } }[];
 };
 
+function buildQuery(params: { status?: string; page?: number; search?: string }) {
+  const q = new URLSearchParams();
+  if (params.status && params.status !== "all") q.set("status", params.status);
+  if (params.page && params.page > 1) q.set("page", String(params.page));
+  if (params.search?.trim()) q.set("search", params.search.trim());
+  const s = q.toString();
+  return s ? "?" + s : "";
+}
+
 export function OrdersTable({
   orders,
   currentStatus = "all",
+  currentSearch = "",
   summary,
   pagination,
 }: {
   orders: Order[];
   currentStatus?: string;
+  currentSearch?: string;
   summary?: { totalOrders: number; newOrders: number; completedOrders: number; cancelledOrders: number };
   pagination?: { currentPage: number; totalPages: number; totalCount: number };
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [searchInput, setSearchInput] = useState(currentSearch);
+
+  useEffect(() => {
+    setSearchInput(currentSearch);
+  }, [currentSearch]);
+
+  const applySearch = useCallback(
+    (search: string) => {
+      const query = buildQuery({
+        status: currentStatus,
+        page: 1,
+        search: search.trim() || undefined,
+      });
+      router.push(pathname + query);
+    },
+    [pathname, currentStatus, router]
+  );
+
+  useEffect(() => {
+    if (searchInput === currentSearch) return;
+    const t = setTimeout(() => applySearch(searchInput), 400);
+    return () => clearTimeout(t);
+  }, [searchInput, currentSearch, applySearch]);
+
   const statusFilters = [
     { value: "all", label: "All Status" },
     { value: "pending", label: "Pending" },
@@ -54,9 +90,7 @@ export function OrdersTable({
   ];
 
   const setStatus = (status: string) => {
-    const params = new URLSearchParams();
-    if (status !== "all") params.set("status", status);
-    router.push(pathname + (params.toString() ? "?" + params.toString() : ""));
+    router.push(pathname + buildQuery({ status, page: 1, search: currentSearch || undefined }));
   };
 
   return (
@@ -79,8 +113,16 @@ export function OrdersTable({
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm">
-          <span className="text-sm text-gray-400">Search by name, Order ID...</span>
+        <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm focus-within:border-gray-300 focus-within:ring-1 focus-within:ring-gray-200">
+          <Search className="h-4 w-4 shrink-0 text-gray-400" />
+          <input
+            type="search"
+            placeholder="Search by name, Order ID..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+            aria-label="Search orders"
+          />
         </div>
         <select
           value={currentStatus}
@@ -188,7 +230,7 @@ export function OrdersTable({
             </p>
             <div className="flex items-center gap-2">
               <Link
-                href={pagination.currentPage <= 1 ? "#" : `?page=${pagination.currentPage - 1}${currentStatus !== "all" ? `&status=${currentStatus}` : ""}`}
+                href={pagination.currentPage <= 1 ? "#" : pathname + buildQuery({ status: currentStatus, page: pagination.currentPage - 1, search: currentSearch || undefined })}
                 className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${pagination.currentPage <= 1 ? "cursor-not-allowed border-gray-200 text-gray-400" : "border-gray-200 text-gray-700 hover:bg-gray-50"}`}
               >
                 ← Previous
@@ -198,7 +240,7 @@ export function OrdersTable({
                 return (
                   <Link
                     key={p}
-                    href={`?page=${p}${currentStatus !== "all" ? `&status=${currentStatus}` : ""}`}
+                    href={pathname + buildQuery({ status: currentStatus, page: p, search: currentSearch || undefined })}
                     className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
                       p === pagination.currentPage ? "bg-[var(--teal)] text-white" : "border border-gray-200 text-gray-700 hover:bg-gray-50"
                     }`}
@@ -208,7 +250,7 @@ export function OrdersTable({
                 );
               })}
               <Link
-                href={pagination.currentPage >= pagination.totalPages ? "#" : `?page=${pagination.currentPage + 1}${currentStatus !== "all" ? `&status=${currentStatus}` : ""}`}
+                href={pagination.currentPage >= pagination.totalPages ? "#" : pathname + buildQuery({ status: currentStatus, page: pagination.currentPage + 1, search: currentSearch || undefined })}
                 className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${pagination.currentPage >= pagination.totalPages ? "cursor-not-allowed border-gray-200 text-gray-400" : "border-gray-200 text-gray-700 hover:bg-gray-50"}`}
               >
                 Next →

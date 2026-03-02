@@ -130,6 +130,20 @@ model ShippingZone {
   updatedAt DateTime @updatedAt
 }
 
+model PaymentMethod {
+  id             String    @id @default(cuid())
+  name           String
+  type           String    // "COD" | "MANUAL"
+  isActive       Boolean   @default(true)
+  accountNumber  String?
+  instructions   String?
+  logoUrl        String?
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  orders         Order[]
+}
+
 model HomepageSection {
   id        String   @id @default(cuid())
   key       String   @unique
@@ -143,24 +157,28 @@ model HomepageSection {
 }
 
 model Order {
-  id            String     @id @default(cuid())
-  orderNumber   String     @unique
-  customerId    String?
-  customer      Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  userId        String?
-  user          User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
-  status        String     @default("pending")
-  subtotal      Decimal
-  shipping      Decimal    @default(0)
-  tax           Decimal    @default(0)
-  total         Decimal
-  couponCode    String?
-  shippingZone  String?
-  shippingAddr  String?
-  notes         String?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  items         OrderItem[]
+  id               String        @id @default(cuid())
+  orderNumber      String        @unique
+  customerId       String?
+  customer         Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  userId           String?
+  user             User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  paymentMethodId  String?
+  paymentMethod    PaymentMethod? @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
+  transactionId    String?
+  senderNumber     String?
+  status           String        @default("pending")
+  subtotal         Decimal
+  shipping         Decimal       @default(0)
+  tax              Decimal       @default(0)
+  total            Decimal
+  couponCode       String?
+  shippingZone     String?
+  shippingAddr     String?
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  items            OrderItem[]
 }
 
 model OrderItem {

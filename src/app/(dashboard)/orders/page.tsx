@@ -8,15 +8,28 @@ import Link from "next/link";
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; page?: string; search?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/v2/login");
 
-  const { status, page } = await searchParams;
+  const { status, page, search: searchQuery } = await searchParams;
   const currentPage = Math.max(1, parseInt(page ?? "1", 10));
   const pageSize = 10;
-  const where = status && status !== "all" ? { status } : {};
+  const search = searchQuery?.trim() || undefined;
+
+  const where = {
+    ...(status && status !== "all" ? { status } : {}),
+    ...(search
+      ? {
+          OR: [
+            { orderNumber: { contains: search } },
+            { customer: { name: { contains: search } } },
+            { customer: { email: { contains: search } } },
+          ],
+        }
+      : {}),
+  };
 
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
@@ -65,6 +78,7 @@ export default async function OrdersPage({
         <OrdersTable
           orders={orders}
           currentStatus={status ?? "all"}
+          currentSearch={search ?? ""}
           summary={{ totalOrders, newOrders, completedOrders, cancelledOrders }}
           pagination={{ currentPage, totalPages, totalCount }}
         />

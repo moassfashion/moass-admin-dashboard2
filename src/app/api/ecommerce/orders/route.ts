@@ -20,6 +20,9 @@ const createOrderSchema = z.object({
   shippingZoneId: z.string().optional(),
   shippingAddress: z.string().optional(),
   notes: z.string().optional(),
+  payment_method_id: z.string().min(1).optional(),
+  transaction_id: z.string().nullable().optional(),
+  sender_number: z.string().nullable().optional(),
 });
 
 /**
@@ -33,6 +36,33 @@ export async function POST(request: NextRequest) {
     const data = createOrderSchema.parse(body);
     if (data.items.length === 0)
       return NextResponse.json({ error: "At least one item required" }, { status: 400 });
+
+    let paymentMethodId: string | null = null;
+    let transactionId: string | null = null;
+    let senderNumber: string | null = null;
+    if (data.payment_method_id) {
+      const method = await prisma.paymentMethod.findFirst({
+        where: { id: data.payment_method_id, isActive: true },
+      });
+      if (!method)
+        return NextResponse.json(
+          { error: "Invalid or inactive payment method" },
+          { status: 400 }
+        );
+      paymentMethodId = method.id;
+      if (method.type === "MANUAL") {
+        const txId = (data.transaction_id ?? "").toString().trim();
+        if (!txId)
+          return NextResponse.json(
+            { error: "Transaction ID is required for this payment method" },
+            { status: 422 }
+          );
+        transactionId = txId;
+      }
+      senderNumber = data.sender_number != null && String(data.sender_number).trim() !== ""
+        ? String(data.sender_number).trim()
+        : null;
+    }
 
     const loggedIn = await getCurrentCustomer();
     let customerPayload: { email: string; name?: string; phone?: string; address?: string };
@@ -177,6 +207,9 @@ export async function POST(request: NextRequest) {
         data: {
           orderNumber,
           customerId,
+          paymentMethodId,
+          transactionId,
+          senderNumber,
           status: "pending",
           subtotal: new Decimal(subtotal),
           shipping: new Decimal(shippingCost),
@@ -231,7 +264,11 @@ export async function POST(request: NextRequest) {
 
     const full = await prisma.order.findUnique({
       where: { id: order.id },
-      include: { customer: true, items: { include: { product: true } } },
+      include: {
+        customer: true,
+        paymentMethod: true,
+        items: { include: { product: true } },
+      },
     });
     return NextResponse.json(full);
   } catch (e) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -12,12 +13,14 @@ import {
   Ticket,
   Warehouse,
   Truck,
+  CreditCard,
   BarChart3,
   Settings,
   User,
   LogOut,
   LayoutGrid,
   LayoutList,
+  Search,
 } from "lucide-react";
 
 function LogoutButton() {
@@ -48,6 +51,7 @@ const mainNav = [
   { href: "/coupons", label: "Coupons", icon: Ticket },
   { href: "/inventory", label: "Inventory", icon: Warehouse, badgeKey: "lowStock" },
   { href: "/shipping", label: "Shipping", icon: Truck },
+  { href: "/payment-methods", label: "Payment Methods", icon: CreditCard },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -60,6 +64,13 @@ export function Sidebar({
   lowStockCount?: number;
 }) {
   const pathname = usePathname();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredNav = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return mainNav;
+    return mainNav.filter((item) => item.label.toLowerCase().includes(q));
+  }, [searchQuery]);
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-full w-60 flex-col border-r border-gray-200 bg-white">
@@ -73,15 +84,16 @@ export function Sidebar({
       </div>
 
       <div className="mt-3 px-3">
-        <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+        <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 focus-within:border-gray-300 focus-within:ring-1 focus-within:ring-gray-200">
+          <Search className="h-4 w-4 shrink-0 text-gray-400" />
           <input
             type="search"
-            placeholder="Search..."
+            placeholder="Search menu..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-            readOnly
-            onFocus={(e) => e.target.blur()}
+            aria-label="Search menu"
           />
-          <span className="shrink-0 text-xs text-gray-400">⌘K</span>
         </div>
       </div>
 
@@ -89,7 +101,7 @@ export function Sidebar({
         <p className="mb-2 px-3 text-xs font-medium uppercase tracking-wide text-gray-400">
           Main
         </p>
-        {mainNav.map(({ href, label, icon: Icon, badgeKey }) => {
+        {filteredNav.map(({ href, label, icon: Icon, badgeKey }) => {
           const active =
             pathname === href || (href !== "/" && pathname.startsWith(href + "/"));
           const showBadge = badgeKey === "lowStock" && lowStockCount > 0;
@@ -113,6 +125,9 @@ export function Sidebar({
             </Link>
           );
         })}
+        {filteredNav.length === 0 && (
+          <p className="px-3 py-2 text-sm text-gray-500">No menu match</p>
+        )}
       </nav>
 
       <div className="border-t border-gray-100 p-3">
