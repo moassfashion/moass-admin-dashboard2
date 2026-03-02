@@ -71,6 +71,14 @@ CREATE TABLE IF NOT EXISTS `Banner` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `StoredImage` (
+    `id` VARCHAR(191) NOT NULL,
+    `data` LONGBLOB NOT NULL,
+    `mimeType` VARCHAR(191) NOT NULL DEFAULT 'image/jpeg',
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `Customer` (
     `id` VARCHAR(191) NOT NULL,
     `email` VARCHAR(191) NOT NULL,
@@ -155,12 +163,53 @@ CREATE TABLE IF NOT EXISTS `OrderItem` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Foreign keys (run after tables exist)
-ALTER TABLE `Category` ADD CONSTRAINT `Category_parentId_fkey` FOREIGN KEY (`parentId`) REFERENCES `Category`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
-ALTER TABLE `Product` ADD CONSTRAINT `Product_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `Category`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
-ALTER TABLE `Order` ADD CONSTRAINT `Order_customerId_fkey` FOREIGN KEY (`customerId`) REFERENCES `Customer`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
-ALTER TABLE `Order` ADD CONSTRAINT `Order_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
-ALTER TABLE `OrderItem` ADD CONSTRAINT `OrderItem_orderId_fkey` FOREIGN KEY (`orderId`) REFERENCES `Order`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE `OrderItem` ADD CONSTRAINT `OrderItem_productId_fkey` FOREIGN KEY (`productId`) REFERENCES `Product`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+-- If you get errno 121 "Duplicate key", the constraint already exists. Either skip this block
+-- or run the block below first to drop existing FKs, then run this block again.
+
+-- Add FKs only if missing (safe to run multiple times)
+DROP PROCEDURE IF EXISTS _add_fks;
+DELIMITER //
+CREATE PROCEDURE _add_fks()
+BEGIN
+  IF (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+      WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'Category' AND CONSTRAINT_NAME = 'Category_parentId_fkey') > 0 THEN
+    ALTER TABLE `Category` DROP FOREIGN KEY `Category_parentId_fkey`;
+  END IF;
+  ALTER TABLE `Category` ADD CONSTRAINT `Category_parentId_fkey` FOREIGN KEY (`parentId`) REFERENCES `Category`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+  IF (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+      WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'Product' AND CONSTRAINT_NAME = 'Product_categoryId_fkey') > 0 THEN
+    ALTER TABLE `Product` DROP FOREIGN KEY `Product_categoryId_fkey`;
+  END IF;
+  ALTER TABLE `Product` ADD CONSTRAINT `Product_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `Category`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+  IF (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+      WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'Order' AND CONSTRAINT_NAME = 'Order_customerId_fkey') > 0 THEN
+    ALTER TABLE `Order` DROP FOREIGN KEY `Order_customerId_fkey`;
+  END IF;
+  ALTER TABLE `Order` ADD CONSTRAINT `Order_customerId_fkey` FOREIGN KEY (`customerId`) REFERENCES `Customer`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+  IF (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+      WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'Order' AND CONSTRAINT_NAME = 'Order_userId_fkey') > 0 THEN
+    ALTER TABLE `Order` DROP FOREIGN KEY `Order_userId_fkey`;
+  END IF;
+  ALTER TABLE `Order` ADD CONSTRAINT `Order_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+  IF (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+      WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'OrderItem' AND CONSTRAINT_NAME = 'OrderItem_orderId_fkey') > 0 THEN
+    ALTER TABLE `OrderItem` DROP FOREIGN KEY `OrderItem_orderId_fkey`;
+  END IF;
+  ALTER TABLE `OrderItem` ADD CONSTRAINT `OrderItem_orderId_fkey` FOREIGN KEY (`orderId`) REFERENCES `Order`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+  IF (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+      WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'OrderItem' AND CONSTRAINT_NAME = 'OrderItem_productId_fkey') > 0 THEN
+    ALTER TABLE `OrderItem` DROP FOREIGN KEY `OrderItem_productId_fkey`;
+  END IF;
+  ALTER TABLE `OrderItem` ADD CONSTRAINT `OrderItem_productId_fkey` FOREIGN KEY (`productId`) REFERENCES `Product`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+END //
+DELIMITER ;
+CALL _add_fks();
+DROP PROCEDURE _add_fks;
 
 -- After running this script, mark migration as applied (use the migration name you created):
 -- npx prisma migrate resolve --applied "20260302000000_init"
@@ -172,3 +221,12 @@ ALTER TABLE `OrderItem` ADD CONSTRAINT `OrderItem_productId_fkey` FOREIGN KEY (`
 -- ALTER TABLE `Banner` MODIFY COLUMN `image` VARCHAR(191) NULL;
 -- ALTER TABLE `Banner` ADD COLUMN `imageData` LONGBLOB NULL;
 -- ALTER TABLE `Banner` ADD COLUMN `imageMime` VARCHAR(191) NULL;
+
+-- If you already had tables and need product/upload images in MySQL only, add StoredImage:
+-- CREATE TABLE IF NOT EXISTS `StoredImage` (
+--     `id` VARCHAR(191) NOT NULL,
+--     `data` LONGBLOB NOT NULL,
+--     `mimeType` VARCHAR(191) NOT NULL DEFAULT 'image/jpeg',
+--     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+--     PRIMARY KEY (`id`)
+-- ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

@@ -73,6 +73,14 @@ model Banner {
   updatedAt  DateTime @updatedAt
 }
 
+// Product/upload images stored in MySQL (LONGBLOB); serve via GET /api/image/[id]
+model StoredImage {
+  id        String   @id @default(cuid())
+  data      Bytes    // LONGBLOB
+  mimeType  String   @default("image/jpeg")
+  createdAt DateTime @default(now())
+}
+
 model Customer {
   id        String   @id @default(cuid())
   email     String
