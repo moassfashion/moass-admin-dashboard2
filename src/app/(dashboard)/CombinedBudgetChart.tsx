@@ -15,7 +15,7 @@ import { format, subMonths } from "date-fns";
 
 type Order = { total: { toString(): string }; createdAt: Date };
 
-export function CombinedBudgetChart({ orders }: { orders: Order[] }) {
+export function CombinedBudgetChart({ orders, dateLabel }: { orders: Order[]; dateLabel?: string }) {
   const data = useMemo(() => {
     const byMonth: Record<string, { month: string; revenues: number; expenditures: number }> = {};
     for (let i = 11; i >= 0; i--) {
@@ -66,7 +66,7 @@ export function CombinedBudgetChart({ orders }: { orders: Order[] }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <p className="mt-2 text-xs text-gray-500">01 Jan, 2024 to 31 Dec, 2024</p>
+      {dateLabel && <p className="mt-2 text-xs text-gray-500">{dateLabel}</p>}
     </div>
   );
 }

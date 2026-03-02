@@ -7,11 +7,13 @@ export function AnalyticsPanel({
   outStockCount,
   totalProducts,
   totalOrders,
+  dateLabel,
 }: {
   inStockCount: number;
   outStockCount: number;
   totalProducts: number;
   totalOrders: number;
+  dateLabel?: string;
 }) {
   const total = inStockCount + outStockCount || 1;
   const inStockPct = Math.round((inStockCount / total) * 100);
@@ -24,7 +26,7 @@ export function AnalyticsPanel({
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
       <h3 className="text-sm font-semibold text-gray-900">Analytics</h3>
-      <p className="text-xs text-gray-500">Analytics last 365 days</p>
+      <p className="text-xs text-gray-500">{dateLabel ?? "Stock & orders overview"}</p>
       <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative h-40 w-40 shrink-0">
           <ResponsiveContainer width="100%" height="100%">

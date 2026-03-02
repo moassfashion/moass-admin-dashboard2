@@ -36,11 +36,13 @@ export function DashboardStats({
   productSales,
   completedOrder,
   cancelledOrder,
+  dateLabel,
 }: {
   totalRevenue: number;
   productSales: number;
   completedOrder: number;
   cancelledOrder: number;
+  dateLabel?: string;
 }) {
   const values: Record<string, string> = {
     totalRevenue: `৳${totalRevenue.toLocaleString()}`,
@@ -49,11 +51,12 @@ export function DashboardStats({
     cancelledOrder: cancelledOrder.toLocaleString(),
   };
 
+  const period = dateLabel ?? "Last 365 days";
   const desc: Record<string, string> = {
-    totalRevenue: "New Revenue last 365 days",
-    productSales: "Product Sales last 365 days",
-    completedOrder: "Completed Order last 365 days",
-    cancelledOrder: "Cancelled Order last 365 days",
+    totalRevenue: `Revenue (${period})`,
+    productSales: `Product Sales (${period})`,
+    completedOrder: `Completed (${period})`,
+    cancelledOrder: `Cancelled (${period})`,
   };
 
   return (
