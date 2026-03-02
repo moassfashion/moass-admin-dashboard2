@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { TopBar } from "@/components/layout/TopBar";
-
+export const dynamic = "force-dynamic";
 export default async function ProductsPage() {
   const [user, products] = await Promise.all([
     getCurrentUser(),
