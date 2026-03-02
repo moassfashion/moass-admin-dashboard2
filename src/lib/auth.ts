@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { prisma } from "./db";
@@ -56,7 +57,8 @@ export async function getSession(): Promise<{ sub: string; email: string } | nul
   }
 }
 
-export async function getCurrentUser() {
+/** Cached per-request so layout + page don't double-fetch. */
+export const getCurrentUser = cache(async () => {
   try {
     const session = await getSession();
     if (!session) return null;
@@ -68,7 +70,7 @@ export async function getCurrentUser() {
   } catch {
     return null;
   }
-}
+});
 
 export async function getSessionToken(): Promise<string | null> {
   const cookieStore = await cookies();

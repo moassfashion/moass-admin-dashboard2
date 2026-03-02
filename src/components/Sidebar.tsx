@@ -17,6 +17,7 @@ import {
   User,
   LogOut,
   LayoutGrid,
+  LayoutList,
 } from "lucide-react";
 
 function LogoutButton() {
@@ -42,6 +43,7 @@ const mainNav = [
   { href: "/products", label: "Products", icon: Package },
   { href: "/categories", label: "Categories", icon: FolderTree },
   { href: "/banners", label: "Banners", icon: Image },
+  { href: "/homepage/sections", label: "Homepage Sections", icon: LayoutList },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/coupons", label: "Coupons", icon: Ticket },
   { href: "/inventory", label: "Inventory", icon: Warehouse, badgeKey: "lowStock" },

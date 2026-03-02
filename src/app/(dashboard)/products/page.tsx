@@ -5,13 +5,15 @@ import Link from "next/link";
 import { TopBar } from "@/components/layout/TopBar";
 
 export default async function ProductsPage() {
-  const user = await getCurrentUser();
+  const [user, products] = await Promise.all([
+    getCurrentUser(),
+    prisma.product.findMany({
+      take: 50,
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+      include: { category: true },
+    }),
+  ]);
   if (!user) redirect("/auth/v2/login");
-  const products = await prisma.product.findMany({
-    take: 50,
-    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-    include: { category: true },
-  });
   return (
     <div className="min-h-full">
       <TopBar

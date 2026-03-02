@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Bold, Italic, Underline, Strikethrough, Link2, List } from "lucide-react";
@@ -43,6 +43,7 @@ export function ProductForm({
   product: Product;
 }) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const isNew = !product;
   const [name, setName] = useState(product?.name ?? "");
   const [slug, setSlug] = useState(product?.slug ?? "");
@@ -124,8 +125,11 @@ export function ProductForm({
         setError(data.error || "Failed");
         return;
       }
-      if (isNew) router.push(`/products/${data.id}/edit`);
-      else router.refresh();
+      if (isNew) {
+        startTransition(() => router.push(`/products/${data.id}/edit`));
+      } else {
+        startTransition(() => router.refresh());
+      }
     } finally {
       setSaving(false);
     }
@@ -247,7 +251,7 @@ export function ProductForm({
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className={`min-h-[80px] ${inputClass} py-2`} />
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
-            <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+            <Button type="submit" disabled={saving || isPending}>{saving ? "Saving…" : isPending ? "Redirecting…" : "Save"}</Button>
           </div>
         </div>
         <div className="space-y-6">
@@ -675,15 +679,15 @@ export function ProductForm({
 
       {/* Action buttons */}
       <div className="flex flex-wrap items-center justify-end gap-3 border-t border-gray-200 pt-6">
-        <Button type="submit" disabled={saving} variant="secondary" className="inline-flex items-center gap-2">
+        <Button type="submit" disabled={saving || isPending} variant="secondary" className="inline-flex items-center gap-2">
           <Save className="h-4 w-4" />
-          Save Product
+          {saving ? "Saving…" : isPending ? "Redirecting…" : "Save Product"}
         </Button>
         <button type="button" className="inline-flex items-center gap-2 rounded-lg bg-[var(--teal)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:opacity-90">
           <Calendar className="h-4 w-4" />
           Schedule
         </button>
-        <Button type="submit" disabled={saving} className="inline-flex items-center gap-2 bg-[var(--success)] hover:opacity-90">
+        <Button type="submit" disabled={saving || isPending} className="inline-flex items-center gap-2 bg-[var(--success)] hover:opacity-90">
           <Plus className="h-4 w-4" />
           Add Product
         </Button>

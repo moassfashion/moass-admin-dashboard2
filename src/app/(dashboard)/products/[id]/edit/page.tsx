@@ -3,19 +3,20 @@ import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { TopBar } from "@/components/layout/TopBar";
 import { ProductForm } from "./ProductForm";
+import { getCategoriesForProductForm } from "@/lib/product-data";
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/auth/v2/login");
   const { id } = await params;
-  const product = await prisma.product.findUnique({
-    where: { id },
-    include: { category: true },
-  });
+  const [user, product, categories] = await Promise.all([
+    getCurrentUser(),
+    prisma.product.findUnique({
+      where: { id },
+      include: { category: true },
+    }),
+    getCategoriesForProductForm(),
+  ]);
+  if (!user) redirect("/auth/v2/login");
   if (!product) notFound();
-  const categories = await prisma.category.findMany({
-    orderBy: { sortOrder: "asc" },
-  });
   return (
     <div className="min-h-full">
       <TopBar
