@@ -8,7 +8,7 @@
 
 ## এই প্রজেক্টে (MOASS Admin Dashboard – Next.js / Vercel)
 
-এই রিপোতে **ইতিমধ্যে CORS মিডলওয়্যার** আছে। এটি নিচের অরিজিনগুলো অটোমেটিক অলাউ করে:
+এই রিপোতে **ইতিমধ্যে CORS লজিক** আছে (`src/proxy.ts` এ)। এটি নিচের অরিজিনগুলো অটোমেটিক অলাউ করে:
 
 - `http://localhost:3000`
 - `http://localhost:3001`
@@ -28,10 +28,10 @@
      ```env
      STOREFRONT_ORIGIN=https://your-store.vercel.app,http://localhost:3000,http://localhost:3001
      ```
-   - অথবা কোডে `src/middleware.ts` এর `getAllowedOrigins()` এ লিস্টে যোগ করুন।
+   - অথবা কোডে `src/proxy.ts` এর `getAllowedOrigins()` এ লিস্টে যোগ করুন।
 
 3. **Credentials (কুকি)**  
-   নির্দিষ্ট অরিজিন অলাউ করা থাকলে মিডলওয়্যার অটোমেটিক `Access-Control-Allow-Credentials: true` সেট করে।
+   নির্দিষ্ট অরিজিন অলাউ করা থাকলে proxy অটোমেটিক `Access-Control-Allow-Credentials: true` সেট করে।
 
 ডিপ্লয়ের পর localhost স্টোরফ্রন্ট থেকে আবার অর্ডার দিয়ে চেক করুন; CORS এরর না হওয়া উচিত।
 
