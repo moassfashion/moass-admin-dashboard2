@@ -171,8 +171,6 @@ export async function POST(request: NextRequest) {
 
     const tax = 0;
     const total = Math.max(0, subtotal - discount + shippingCost + tax);
-    const orderNumber =
-      "ORD-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8).toUpperCase();
 
     if (!loggedIn) {
       const normalizedEmail = customerPayload.email.trim().toLowerCase();
@@ -203,6 +201,13 @@ export async function POST(request: NextRequest) {
     }
 
     const order = await prisma.$transaction(async (tx) => {
+      const nextRow = await tx.$queryRaw<[{ next: bigint }]>`
+        SELECT COALESCE(MAX(CAST(orderNumber AS UNSIGNED)), 0) + 1 AS \`next\`
+        FROM \`Order\`
+        WHERE orderNumber REGEXP '^[0-9]+$'
+      `;
+      const orderNumber = String(Number(nextRow[0].next)).padStart(5, "0");
+
       const o = await tx.order.create({
         data: {
           orderNumber,

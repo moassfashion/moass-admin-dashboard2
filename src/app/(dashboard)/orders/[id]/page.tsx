@@ -17,6 +17,14 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   if (!order) notFound();
 
   const showBanner = !!order.notes?.trim();
+  const hasCoupon = !!order.couponCode?.trim();
+  const discountAmount =
+    hasCoupon
+      ? Math.max(
+          0,
+          Number(order.subtotal) + Number(order.shipping) - Number(order.total)
+        )
+      : 0;
 
   return (
     <div className="min-h-full">
@@ -78,6 +86,11 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                   <p className="text-gray-700">
                     Shipping <span className="font-medium text-gray-900">৳{Number(order.shipping).toLocaleString()}</span>
                   </p>
+                  {hasCoupon && discountAmount > 0 && (
+                    <p className="text-green-600">
+                      Coupon ({order.couponCode}) <span className="font-medium text-green-700">-৳{discountAmount.toLocaleString()}</span>
+                    </p>
+                  )}
                   <p className="border-t border-gray-200 pt-2 text-base font-medium text-gray-900">
                     Total ৳{Number(order.total).toLocaleString()}
                   </p>
@@ -112,6 +125,11 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               <div className="px-6 py-4 text-sm text-gray-700">
                 <p>Subtotal ৳{Number(order.subtotal).toLocaleString()}</p>
                 <p className="mt-1">Shipping ৳{Number(order.shipping).toLocaleString()}</p>
+                {hasCoupon && discountAmount > 0 && (
+                  <p className="mt-1 text-green-600">
+                    Coupon ({order.couponCode}) -৳{discountAmount.toLocaleString()}
+                  </p>
+                )}
                 <p className="mt-2 border-t border-gray-100 pt-2 font-medium text-gray-900">
                   Total ৳{Number(order.total).toLocaleString()}
                 </p>
